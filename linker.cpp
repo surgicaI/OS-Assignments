@@ -37,6 +37,7 @@ void parseSingleDefinition();
 vector<string> parseUseList();
 void parseToken(vector<string>&);
 void parseProgramText(vector<string>&);
+void parseInstruction(vector<string>&);
 
 //variables
 int numberOfModules = 0;
@@ -127,11 +128,29 @@ void parseToken(vector<string>& tokens){
 
 void parseProgramText(vector<string>& tokens){
     int noOfInstructions = 0;
+    char c = ' ';
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        noOfInstructions = noOfInstructions*10 + (c-'0');
+        fin.get(c);
+    }
+    for(int i=0;i<noOfInstructions;i++)
+        parseInstruction(tokens);
+}
+
+void parseInstruction(vector<string>& tokens){
     string instructionType = "";
     int instruction = 0;
-    fin>>noOfInstructions;
-    for(int i=0;i<noOfInstructions;i++){
-        fin >> instructionType >> instruction;
-        cout << instructionType << " " << instruction <<endl;
+    char c = ' ';
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        instructionType = instructionType + c;
+        fin.get(c);
     }
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        instruction = instruction*10 + (c-'0');
+        fin.get(c);
+    }
+    cout << instructionType << " " << instruction <<endl;
 }
