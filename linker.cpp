@@ -33,8 +33,10 @@ class SymbolTable{
 void pass_1(string);
 void pass_2(string);
 void parseDefinitions();
-vector<int> parseUseList();
-void parseProgramText(vector<int>&);
+void parseSingleDefinition();
+vector<string> parseUseList();
+void parseToken(vector<string>&);
+void parseProgramText(vector<string>&);
 
 //variables
 int numberOfModules = 0;
@@ -60,38 +62,70 @@ void pass_1(string filename){
     while(!fin.eof()){
         numberOfModules++;
         parseDefinitions();
-        mSymbolTable.print();
-        vector<int> tokens = parseUseList();
+        vector<string> tokens = parseUseList();
         parseProgramText(tokens);
     }
+    mSymbolTable.print();
     fin.close();
 }
 
 void parseDefinitions(){
     int noOfDefinitions = 0;
-    string symbol = "";
-    int value = 0;
-    fin >> noOfDefinitions;
-    for(int i=0;i<noOfDefinitions;i++){
-        fin >> symbol >> value;
-        mSymbolTable.addSymbol(symbol,value);
+    char c = ' ';
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        noOfDefinitions = noOfDefinitions*10 + (c-'0');
+        fin.get(c);
     }
-
+    for(int i=0;i<noOfDefinitions;i++)
+    parseSingleDefinition();
 }
 
-vector<int> parseUseList(){
+void parseSingleDefinition(){
+    string symbol = "";
+    int value = 0;
+    char c = ' ';
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        symbol = symbol + c;
+        fin.get(c);
+    }
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        value = value*10 + (c-'0');
+        fin.get(c);
+    }
+    mSymbolTable.addSymbol(symbol,value);
+}
+
+vector<string> parseUseList(){
     int noOfTokens = 0;
     int token = 0;
-    vector<int> tokens;
-    fin >> noOfTokens;
-    for(int i=0;i<noOfTokens;i++){
-        fin>>token;
-        tokens.insert(tokens.end(),token);
+    vector<string> tokens;
+    char c = ' ';
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        noOfTokens = noOfTokens*10 + (c-'0');
+        fin.get(c);
     }
+    for(int i=0;i<noOfTokens;i++)
+    parseToken(tokens);
+    
     return tokens;
 }
 
-void parseProgramText(vector<int>& tokens){
+void parseToken(vector<string>& tokens){
+    string token = "";
+    char c =' ';
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        token = token + c;
+        fin.get(c);
+    }
+    tokens.insert(tokens.end(),token);
+}
+
+void parseProgramText(vector<string>& tokens){
     int noOfInstructions = 0;
     string instructionType = "";
     int instruction = 0;
