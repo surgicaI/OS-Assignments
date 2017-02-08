@@ -1,5 +1,5 @@
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <fstream>
 #include <vector>
 #include <iomanip>
@@ -9,7 +9,7 @@ const bool LOGS_ENABLED = false;
 
 //Classes definition
 class SymbolTable{
-    unordered_map<string, int> symbols;
+    map<string, int> symbols;
 
     //returns false if symbol is already present and true otherwise
     public:
@@ -24,7 +24,7 @@ class SymbolTable{
     }
 
     int getSymbolGlobalAddress(string symbol){
-        unordered_map<string,int>::const_iterator it = symbols.find(symbol);
+        map<string,int>::const_iterator it = symbols.find(symbol);
         if(it != symbols.end()){
             return it->second;
         }
@@ -36,7 +36,7 @@ class SymbolTable{
     //prints the symbol table in formatting, given in requirements
     void print(){
         cout<<"Symbol Table"<<endl;
-        unordered_map<string,int>::iterator it;
+        map<string,int>::iterator it;
         for (it = symbols.begin(); it != symbols.end(); ++it ){
             cout << it->first << "=" << it->second<<endl;
         }
