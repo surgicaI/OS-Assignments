@@ -66,12 +66,12 @@ void parseDefinitions();
 void parseSingleDefinition();
 void parseDefinitionsPass2();
 void parseSingleDefinitionPass2();
-vector<string> parseUseList();
-void parseToken(vector<string>&);
+void parseUseList();
+void parseToken();
 vector<string> parseUseListPass2();
 void parseTokenPass2(vector<string>&);
-void parseProgramText(vector<string>&);
-void parseInstruction(vector<string>&);
+void parseProgramText();
+void parseInstruction();
 void parseProgramTextPass2(vector<string>&);
 void parseInstructionPass2(vector<string>&);
 void updateModuleCount();
@@ -110,8 +110,8 @@ void pass_1(string filename){
     while(!fin.eof()){
         //parsing inpput file
         parseDefinitions();
-        vector<string> tokens = parseUseList();
-        parseProgramText(tokens);
+        parseUseList();
+        parseProgramText();
     }
     fin.close();
 }
@@ -149,10 +149,9 @@ void parseSingleDefinition(){
     mSymbolTable.addSymbol(symbol,value);
 }
 
-vector<string> parseUseList(){
+void parseUseList(){
     int noOfTokens = 0;
     int token = 0;
-    vector<string> tokens;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -160,12 +159,10 @@ vector<string> parseUseList(){
         fin.get(c);
     }
     for(int i=0;i<noOfTokens;i++)
-    parseToken(tokens);
-    
-    return tokens;
+        parseToken();
 }
 
-void parseToken(vector<string>& tokens){
+void parseToken(){
     string token = "";
     char c =' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
@@ -175,10 +172,9 @@ void parseToken(vector<string>& tokens){
     }
     if(LOGS_ENABLED)
         cout<<token<<endl;
-    tokens.insert(tokens.end(),token);
 }
 
-void parseProgramText(vector<string>& tokens){
+void parseProgramText(){
     int noOfInstructions = 0;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
@@ -188,10 +184,10 @@ void parseProgramText(vector<string>& tokens){
     }
     currentModuleOffset += noOfInstructions;
     for(int i=0;i<noOfInstructions;i++)
-        parseInstruction(tokens);
+        parseInstruction();
 }
 
-void parseInstruction(vector<string>& tokens){
+void parseInstruction(){
     string instructionType = "";
     int instruction = 0;
     char c = ' ';
