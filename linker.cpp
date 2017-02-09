@@ -117,15 +117,25 @@ void pass_1(string filename){
 }
 
 void parseDefinitions(){
-    int noOfDefinitions = 0;
+    int noOfDefinitions = -1;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
     if(!fin.eof()){
+        //so that noOfDefinitions variable is 0 only when there are still modules left in file to parse
+        noOfDefinitions = 0;
         updateModuleCount();
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        if(c<'0' || c>'9'){
+            cout << "Parse Error, unexpected symbol encountered" <<endl;
+            exit(0);
+        }
         noOfDefinitions = noOfDefinitions*10 + (c-'0');
         fin.get(c);
+    }
+    if(fin.eof() && noOfDefinitions==0){
+        cout << "Parse Error,  use_list expected" <<endl;
+        exit(0);
     }
     for(int i=0;i<noOfDefinitions;i++)
     parseSingleDefinition();
@@ -136,12 +146,25 @@ void parseSingleDefinition(){
     int value = 0;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    //Symbol not starting from alpha
+    if((c<'a' || c>'z') && (c<'A' && c>'Z')){
+        cout << "Parse Error, symbol expected" <<endl;
+        exit(0);
+    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         symbol = symbol + c;
         fin.get(c);
     }
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    if(fin.eof()){
+        cout << "Parse Error, symbol value expected" <<endl;
+        exit(0);
+    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        if(c<'0' || c>'9'){
+            cout << "Parse Error, symbol value should be numeric" <<endl;
+            exit(0);
+        }
         value = value*10 + (c-'0');
         fin.get(c);
     }
@@ -155,8 +178,16 @@ void parseUseList(){
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        if(c<'0' || c>'9'){
+            cout << "Parse Error, unexpected symbol encountered" <<endl;
+            exit(0);
+        }
         noOfTokens = noOfTokens*10 + (c-'0');
         fin.get(c);
+    }
+    if(fin.eof()){
+        cout << "Parse Error, missing token" <<endl;
+        exit(0);
     }
     for(int i=0;i<noOfTokens;i++)
         parseToken();
@@ -166,9 +197,18 @@ void parseToken(){
     string token = "";
     char c =' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    //Symbol not starting from alpha
+    if((c<'a' || c>'z') && (c<'A' && c>'Z')){
+        cout << "Parse Error, symbol expected" <<endl;
+        exit(0);
+    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         token = token + c;
         fin.get(c);
+    }
+    if(fin.eof()){
+        cout << "Parse Error, missing token in use list" <<endl;
+        exit(0);
     }
     if(LOGS_ENABLED)
         cout<<token<<endl;
@@ -178,7 +218,15 @@ void parseProgramText(){
     int noOfInstructions = 0;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    if(fin.eof()){
+        cout << "Parse Error, missing program text" <<endl;
+        exit(0);
+    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        if(c<'0' || c>'9'){
+            cout << "Parse Error, unexpected symbol encountered" <<endl;
+            exit(0);
+        }
         noOfInstructions = noOfInstructions*10 + (c-'0');
         fin.get(c);
     }
@@ -193,11 +241,24 @@ void parseInstruction(){
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
-        instructionType = instructionType + c;
-        fin.get(c);
+        if(c=='I' || c=='A' || c=='R' || c=='E'){
+            instructionType = instructionType + c;
+            fin.get(c);
+        }else{
+            cout << "Parse Error, invalid or missing instruction type" <<endl;
+            exit(0);
+        }
     }
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    if(fin.eof()){
+        cout << "Parse Error, missing opcode" <<endl;
+        exit(0);
+    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
+        if(c<'0' || c>'9'){
+            cout << "Parse Error, Invalid opcode" <<endl;
+            exit(0);
+        }
         instruction = instruction*10 + (c-'0');
         fin.get(c);
     }
