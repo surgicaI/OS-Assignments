@@ -5,7 +5,7 @@
 #include <iomanip>
 using namespace std;
 
-const bool LOGS_ENABLED = true;
+const bool LOGS_ENABLED = false;
 
 //Classes definition
 class SymbolTable{
@@ -110,6 +110,7 @@ void pass_1(string filename){
     while(!fin.eof()){
         //parsing inpput file
         parseDefinitions();
+        if(fin.eof()) break;
         parseUseList();
         parseProgramText();
     }
@@ -231,7 +232,6 @@ void parseProgramText(){
             cout << "Parse Error, unexpected symbol encountered" <<endl;
             exit(0);
         }
-        //if()
         noOfInstructions = noOfInstructions*10 + (c-'0');
         fin.get(c);
     }
