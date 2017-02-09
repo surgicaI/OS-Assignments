@@ -5,7 +5,7 @@
 #include <iomanip>
 using namespace std;
 
-const bool LOGS_ENABLED = false;
+const bool LOGS_ENABLED = true;
 
 //Classes definition
 class SymbolTable{
@@ -138,7 +138,9 @@ void parseDefinitions(){
         exit(0);
     }
     for(int i=0;i<noOfDefinitions;i++)
-    parseSingleDefinition();
+        parseSingleDefinition();
+    if(LOGS_ENABLED)
+        cout<<"Number of Definitions:"<< noOfDefinitions <<endl;
 }
 
 void parseSingleDefinition(){
@@ -146,8 +148,8 @@ void parseSingleDefinition(){
     int value = 0;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
-    //Symbol not starting from alpha
-    if((c<'a' || c>'z') && (c<'A' && c>'Z')){
+    //Symbol not starting from alpha, or symbol missing
+    if(((c<'a' || c>'z') && (c<'A' && c>'Z')) || fin.eof()){
         cout << "Parse Error, symbol expected" <<endl;
         exit(0);
     }
@@ -185,6 +187,8 @@ void parseUseList(){
         noOfTokens = noOfTokens*10 + (c-'0');
         fin.get(c);
     }
+    if(LOGS_ENABLED)
+        cout<<"Number of tokens:"<< noOfTokens <<endl;
     if(fin.eof()){
         cout << "Parse Error, missing token" <<endl;
         exit(0);
@@ -211,7 +215,7 @@ void parseToken(){
         exit(0);
     }
     if(LOGS_ENABLED)
-        cout<<token<<endl;
+        cout<<"use list token:"<<token<<endl;
 }
 
 void parseProgramText(){
@@ -227,25 +231,33 @@ void parseProgramText(){
             cout << "Parse Error, unexpected symbol encountered" <<endl;
             exit(0);
         }
+        //if()
         noOfInstructions = noOfInstructions*10 + (c-'0');
         fin.get(c);
     }
     currentModuleOffset += noOfInstructions;
     for(int i=0;i<noOfInstructions;i++)
         parseInstruction();
+    if(LOGS_ENABLED)
+        cout<<"Number of instructions:"<< noOfInstructions <<endl;
 }
 
 void parseInstruction(){
     string instructionType = "";
     int instruction = 0;
+    int instructionLength = 0;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    if(fin.eof()){
+        cout << "Parse Error, missing instruction Type" <<endl;
+        exit(0);
+    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
-        if(c=='I' || c=='A' || c=='R' || c=='E'){
+        if((instructionType.length()==0) && (c=='I' || c=='A' || c=='R' || c=='E')){
             instructionType = instructionType + c;
             fin.get(c);
         }else{
-            cout << "Parse Error, invalid or missing instruction type" <<endl;
+            cout << "Parse Error, invalid instruction type" <<endl;
             exit(0);
         }
     }
@@ -258,8 +270,12 @@ void parseInstruction(){
         if(c<'0' || c>'9'){
             cout << "Parse Error, Invalid opcode" <<endl;
             exit(0);
+        }else if(instructionLength >= 4){
+            cout << "Parse Error, Invalid opcode, length is more than 4 digits" <<endl;
+            exit(0);
         }
         instruction = instruction*10 + (c-'0');
+        instructionLength++;
         fin.get(c);
     }
     if(LOGS_ENABLED)
