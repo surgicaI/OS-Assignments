@@ -3,6 +3,7 @@
 #include <fstream>
 #include <vector>
 #include <iomanip>
+#include <utility> 
 using namespace std;
 
 const bool LOGS_ENABLED = false;
@@ -25,14 +26,14 @@ class SymbolTable{
         return true;
     }
 
-    int getSymbolGlobalAddress(string symbol){
+    pair<int,bool> getSymbolGlobalAddress(string symbol){
         map<string,int>::const_iterator it = symbols.find(symbol);
         if(it != symbols.end()){
-            return it->second;
+            return make_pair(it->second,true);
         }
         if(LOGS_ENABLED)
             cout<<"Symbol not present in symbol table"<<endl;
-        return 0;
+        return make_pair(0,false);
     }
 
     //prints the symbol table in formatting, given in requirements
@@ -50,16 +51,17 @@ class SymbolTable{
     }
 };
 class MemoryMap{
-    vector<int> memoryMap;
+    vector<pair<int,string> > memoryMap;
     public:
-        void addInstructionCode(int instructionCode){
-            memoryMap.insert(memoryMap.end(),instructionCode);
+        void addInstructionCode(int instructionCode,string errorMessage){
+            pair<int,string> instructionCodePair = make_pair(instructionCode,errorMessage);
+            memoryMap.insert(memoryMap.end(),instructionCodePair);
         }
         void print(){
             int index = 0;
             cout<<"Memory Map"<<endl;
-            for (vector<int>::iterator it=memoryMap.begin();it!= memoryMap.end();++it){
-                cout << setfill('0') << setw(3) << index << ": " << *it<<endl;
+            for (vector<pair<int,string> >::iterator it=memoryMap.begin();it!= memoryMap.end();++it){
+                cout << setfill('0') << setw(3) << index << ": " << (*it).first << (*it).second <<endl;
                 index++;
             }
         }
@@ -430,13 +432,18 @@ void parseInstructionPass2(vector<string>& tokens){
 }
 
 void updateInstructionAndAddToMemoryMap(string instructionType,int instruction,vector<string>& tokens){
+    string errorMessage = "";
     if(instructionType=="R"){
         instruction += moduleOffsets[currentModule];
     }else if(instructionType=="E"){
         int tokenIndex = instruction%1000;
-        instruction = ((instruction/1000)*1000) + mSymbolTable.getSymbolGlobalAddress(tokens[tokenIndex]);
+        pair<int,bool> opcodePair = mSymbolTable.getSymbolGlobalAddress(tokens[tokenIndex]);
+        instruction = ((instruction/1000)*1000) + opcodePair.first;
+        if(!opcodePair.second){
+            errorMessage = " Error: " + tokens[tokenIndex] + " is not defined; zero used";
+        }
     }
-    mMemoryMap.addInstructionCode(instruction);
+    mMemoryMap.addInstructionCode(instruction,errorMessage);
 }
 
 void printParseError(int errcode) {
