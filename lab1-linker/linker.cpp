@@ -10,6 +10,7 @@ const bool LOGS_ENABLED = false;
 //Classes definition
 class SymbolTable{
     map<string, int> symbols;
+    map<string, int> symbolsUsedMultipleTimes;
 
     //returns false if symbol is already present and true otherwise
     public:
@@ -17,6 +18,7 @@ class SymbolTable{
         if(symbols.find(symbol) != symbols.end()){
             if(LOGS_ENABLED)
                 cout<<"Symbol already present in symbol table"<<endl;
+            symbolsUsedMultipleTimes[symbol] = value;
             return false;
         }
         symbols[symbol] = value;
@@ -38,7 +40,11 @@ class SymbolTable{
         cout<<"Symbol Table"<<endl;
         map<string,int>::iterator it;
         for (it = symbols.begin(); it != symbols.end(); ++it ){
-            cout << it->first << "=" << it->second<<endl;
+            cout << it->first << "=" << it->second;
+            if(symbolsUsedMultipleTimes.find(it->first) != symbolsUsedMultipleTimes.end())
+                cout << " Error: This variable is multiple times defined; first value used" << endl;
+            else
+                cout << endl;
         }
         cout <<endl;
     }
