@@ -76,6 +76,8 @@ void parseProgramTextPass2(vector<string>&);
 void parseInstructionPass2(vector<string>&);
 void updateModuleCount();
 void updateInstructionAndAddToMemoryMap(string,int,vector<string>&);
+void printParseError(int);
+void readChar(char &);
 
 //variables
 int numberOfModules = 0;
@@ -85,6 +87,17 @@ vector<int> moduleOffsets;
 SymbolTable mSymbolTable;
 MemoryMap mMemoryMap;
 ifstream fin;
+int linenum = 1;
+int offset =1;
+
+//error codes
+static int NUM_EXPECTED = 0;              // Number expect
+static int SYM_EXPECTED = 1;              // Symbol Expected
+static int ADDR_EXPECTED = 2;             // Addressing Expected which is A/E/I/R
+static int SYM_TOO_LONG = 3;              // Symbol Name is too long
+static int TO_MANY_DEF_IN_MODULE = 4;     // > 16
+static int TO_MANY_USE_IN_MODULE = 5;     // > 16
+static int TO_MANY_INSTR = 6;             // total num_instr exceeds memory size (512)
 
 int main ( int argc, char *argv[] )
 {
@@ -107,6 +120,8 @@ int main ( int argc, char *argv[] )
 //Method definitions
 void pass_1(string filename){
     fin.open(filename);
+    linenum =1;
+    offset = 0;
     while(!fin.eof()){
         //parsing inpput file
         parseDefinitions();
@@ -120,7 +135,7 @@ void pass_1(string filename){
 void parseDefinitions(){
     int noOfDefinitions = -1;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(!fin.eof()){
         //so that noOfDefinitions variable is 0 only when there are still modules left in file to parse
         noOfDefinitions = 0;
@@ -128,15 +143,18 @@ void parseDefinitions(){
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
-            cout << "Parse Error, unexpected symbol encountered" <<endl;
-            exit(0);
+            //cout << "Parse Error, unexpected symbol encountered" <<endl;
+            printParseError(NUM_EXPECTED);
         }
         noOfDefinitions = noOfDefinitions*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     if(fin.eof() && noOfDefinitions==0){
-        cout << "Parse Error,  use_list expected" <<endl;
-        exit(0);
+        //cout << "Parse Error,  use_list expected" <<endl;
+        printParseError(NUM_EXPECTED);
+    }
+    if(noOfDefinitions>16){
+        printParseError(TO_MANY_DEF_IN_MODULE);
     }
     for(int i=0;i<noOfDefinitions;i++)
         parseSingleDefinition();
@@ -148,28 +166,31 @@ void parseSingleDefinition(){
     string symbol = "";
     int value = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     //Symbol not starting from alpha, or symbol missing
     if(((c<'a' || c>'z') && (c<'A' && c>'Z')) || fin.eof()){
-        cout << "Parse Error, symbol expected" <<endl;
-        exit(0);
+        //cout << "Parse Error, symbol expected" <<endl;
+        printParseError(SYM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         symbol = symbol + c;
-        fin.get(c);
+        if(symbol.length()>16){
+            printParseError(SYM_TOO_LONG);
+        }
+        readChar(c);
     }
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
-        cout << "Parse Error, symbol value expected" <<endl;
-        exit(0);
+        //cout << "Parse Error, symbol value expected" <<endl;
+        printParseError(NUM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
-            cout << "Parse Error, symbol value should be numeric" <<endl;
-            exit(0);
+            //cout << "Parse Error, symbol value should be numeric" <<endl;
+            printParseError(NUM_EXPECTED);
         }
         value = value*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     value += currentModuleOffset;
     mSymbolTable.addSymbol(symbol,value);
@@ -177,22 +198,24 @@ void parseSingleDefinition(){
 
 void parseUseList(){
     int noOfTokens = 0;
-    int token = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
-            cout << "Parse Error, unexpected symbol encountered" <<endl;
-            exit(0);
+            //cout << "Parse Error, unexpected symbol encountered" <<endl;
+            printParseError(NUM_EXPECTED);
         }
         noOfTokens = noOfTokens*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     if(LOGS_ENABLED)
         cout<<"Number of tokens:"<< noOfTokens <<endl;
     if(fin.eof()){
-        cout << "Parse Error, missing token" <<endl;
-        exit(0);
+        //cout << "Parse Error, missing token" <<endl;
+        printParseError(SYM_EXPECTED);
+    }
+    if(noOfTokens>16){
+        printParseError(TO_MANY_USE_IN_MODULE);
     }
     for(int i=0;i<noOfTokens;i++)
         parseToken();
@@ -201,19 +224,22 @@ void parseUseList(){
 void parseToken(){
     string token = "";
     char c =' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     //Symbol not starting from alpha
     if((c<'a' || c>'z') && (c<'A' && c>'Z')){
         cout << "Parse Error, symbol expected" <<endl;
-        exit(0);
+        printParseError(SYM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         token = token + c;
-        fin.get(c);
+        if(token.length()>16){
+            printParseError(SYM_TOO_LONG);
+        }
+        readChar(c);
     }
     if(fin.eof()){
-        cout << "Parse Error, missing token in use list" <<endl;
-        exit(0);
+        //cout << "Parse Error, missing token in use list" <<endl;
+        printParseError(SYM_EXPECTED);
     }
     if(LOGS_ENABLED)
         cout<<"use list token:"<<token<<endl;
@@ -222,18 +248,18 @@ void parseToken(){
 void parseProgramText(){
     int noOfInstructions = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
-        cout << "Parse Error, missing program text" <<endl;
-        exit(0);
+        //cout << "Parse Error, missing program text" <<endl;
+        printParseError(NUM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
-            cout << "Parse Error, unexpected symbol encountered" <<endl;
-            exit(0);
+            //cout << "Parse Error, unexpected symbol encountered" <<endl;
+            printParseError(NUM_EXPECTED);
         }
         noOfInstructions = noOfInstructions*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     currentModuleOffset += noOfInstructions;
     for(int i=0;i<noOfInstructions;i++)
@@ -247,36 +273,35 @@ void parseInstruction(){
     int instruction = 0;
     int instructionLength = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
-        cout << "Parse Error, missing instruction Type" <<endl;
-        exit(0);
+        //cout << "Parse Error, missing instruction Type" <<endl;
+        printParseError(ADDR_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if((instructionType.length()==0) && (c=='I' || c=='A' || c=='R' || c=='E')){
             instructionType = instructionType + c;
-            fin.get(c);
+            readChar(c);
         }else{
-            cout << "Parse Error, invalid instruction type" <<endl;
-            exit(0);
+            //cout << "Parse Error, invalid instruction type" <<endl;
+            printParseError(ADDR_EXPECTED);
         }
     }
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
-        cout << "Parse Error, missing opcode" <<endl;
-        exit(0);
+        //cout << "Parse Error, missing opcode" <<endl;
+        printParseError(NUM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
-            cout << "Parse Error, Invalid opcode" <<endl;
-            exit(0);
+            //cout << "Parse Error, Invalid opcode" <<endl;
+            printParseError(NUM_EXPECTED);
         }else if(instructionLength >= 4){
-            cout << "Parse Error, Invalid opcode, length is more than 4 digits" <<endl;
-            exit(0);
+            cout << "Invalid opcode, length is more than 4 digits" <<endl;
         }
         instruction = instruction*10 + (c-'0');
         instructionLength++;
-        fin.get(c);
+        readChar(c);
     }
     if(LOGS_ENABLED)
         cout << instructionType << " " << instruction <<endl;
@@ -291,6 +316,8 @@ void updateModuleCount(){
 
 void pass_2(string filename){
     fin.open(filename);
+    linenum = 1;
+    offset = 0;
     while(!fin.eof()){
         //parsing inpput file second time
         parseDefinitionsPass2();
@@ -304,10 +331,10 @@ void pass_2(string filename){
 void parseDefinitionsPass2(){
     int noOfDefinitions = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         noOfDefinitions = noOfDefinitions*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     for(int i=0;i<noOfDefinitions;i++)
     parseSingleDefinitionPass2();
@@ -315,10 +342,10 @@ void parseDefinitionsPass2(){
 
 void parseSingleDefinitionPass2(){
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
-    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()) fin.get(c);
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
-    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()) readChar(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
+    while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()) readChar(c);
 }
 
 vector<string> parseUseListPass2(){
@@ -326,10 +353,10 @@ vector<string> parseUseListPass2(){
     int token = 0;
     vector<string> tokens;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         noOfTokens = noOfTokens*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     for(int i=0;i<noOfTokens;i++)
     parseTokenPass2(tokens);
@@ -340,10 +367,10 @@ vector<string> parseUseListPass2(){
 void parseTokenPass2(vector<string>& tokens){
     string token = "";
     char c =' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         token = token + c;
-        fin.get(c);
+        readChar(c);
     }
     if(LOGS_ENABLED)
         cout<<token<<endl;
@@ -353,10 +380,10 @@ void parseTokenPass2(vector<string>& tokens){
 void parseProgramTextPass2(vector<string>& tokens){
     int noOfInstructions = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         noOfInstructions = noOfInstructions*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     for(int i=0;i<noOfInstructions;i++)
         parseInstructionPass2(tokens);
@@ -366,15 +393,15 @@ void parseInstructionPass2(vector<string>& tokens){
     string instructionType = "";
     int instruction = 0;
     char c = ' ';
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         instructionType = instructionType + c;
-        fin.get(c);
+        readChar(c);
     }
-    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) fin.get(c);
+    while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         instruction = instruction*10 + (c-'0');
-        fin.get(c);
+        readChar(c);
     }
     updateInstructionAndAddToMemoryMap(instructionType,instruction,tokens);
     if(LOGS_ENABLED)
@@ -389,4 +416,28 @@ void updateInstructionAndAddToMemoryMap(string instructionType,int instruction,v
         instruction = ((instruction/1000)*1000) + mSymbolTable.getSymbolGlobalAddress(tokens[tokenIndex]);
     }
     mMemoryMap.addInstructionCode(instruction);
+}
+
+void printParseError(int errcode) {
+    static string errstr[] = {
+        "NUM_EXPECTED",              // Number expect
+        "SYM_EXPECTED",              // Symbol Expected
+        "ADDR_EXPECTED",             // Addressing Expected which is A/E/I/R
+        "SYM_TOO_LONG",              // Symbol Name is too long
+        "TO_MANY_DEF_IN_MODULE",     // > 16
+        "TO_MANY_USE_IN_MODULE",     // > 16
+        "TO_MANY_INSTR",             // total num_instr exceeds memory size (512)
+    };
+    cout << "Parse Error line " + to_string(linenum) + " offset " + to_string(offset) + ": " <<errstr[errcode]<<endl;
+    exit(0);
+}
+
+void readChar(char &c){
+    fin.get(c);
+    if(c=='\n'){
+        linenum++;
+        offset=0;
+    }else{
+        offset++;
+    }
 }
