@@ -89,6 +89,7 @@ MemoryMap mMemoryMap;
 ifstream fin;
 int linenum = 1;
 int offset =1;
+int lastKnowCharPosition[2];
 
 //error codes
 static int NUM_EXPECTED = 0;              // Number expect
@@ -151,6 +152,8 @@ void parseDefinitions(){
     }
     if(fin.eof() && noOfDefinitions==0){
         //cout << "Parse Error,  use_list expected" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
     if(noOfDefinitions>16){
@@ -168,7 +171,7 @@ void parseSingleDefinition(){
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     //Symbol not starting from alpha, or symbol missing
-    if(((c<'a' || c>'z') && (c<'A' && c>'Z')) || fin.eof()){
+    if(((c<'a' || c>'z') && (c<'A' || c>'Z')) || fin.eof()){
         //cout << "Parse Error, symbol expected" <<endl;
         printParseError(SYM_EXPECTED);
     }
@@ -180,10 +183,6 @@ void parseSingleDefinition(){
         readChar(c);
     }
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
-    if(fin.eof()){
-        //cout << "Parse Error, symbol value expected" <<endl;
-        printParseError(NUM_EXPECTED);
-    }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, symbol value should be numeric" <<endl;
@@ -191,6 +190,12 @@ void parseSingleDefinition(){
         }
         value = value*10 + (c-'0');
         readChar(c);
+    }
+    if(fin.eof()){
+        //cout << "Parse Error, symbol value expected, or useList missing" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
+        printParseError(NUM_EXPECTED);
     }
     value += currentModuleOffset;
     mSymbolTable.addSymbol(symbol,value);
@@ -212,6 +217,8 @@ void parseUseList(){
         cout<<"Number of tokens:"<< noOfTokens <<endl;
     if(fin.eof()){
         //cout << "Parse Error, missing token" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
         printParseError(SYM_EXPECTED);
     }
     if(noOfTokens>16){
@@ -226,8 +233,8 @@ void parseToken(){
     char c =' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     //Symbol not starting from alpha
-    if((c<'a' || c>'z') && (c<'A' && c>'Z')){
-        cout << "Parse Error, symbol expected" <<endl;
+    if((c<'a' || c>'z') && (c<'A' || c>'Z')){
+        //cout << "Parse Error, symbol expected" <<endl;
         printParseError(SYM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -239,6 +246,8 @@ void parseToken(){
     }
     if(fin.eof()){
         //cout << "Parse Error, missing token in use list" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
         printParseError(SYM_EXPECTED);
     }
     if(LOGS_ENABLED)
@@ -251,6 +260,8 @@ void parseProgramText(){
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
         //cout << "Parse Error, missing program text" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -276,6 +287,8 @@ void parseInstruction(){
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
         //cout << "Parse Error, missing instruction Type" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
         printParseError(ADDR_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -290,6 +303,8 @@ void parseInstruction(){
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
         //cout << "Parse Error, missing opcode" <<endl;
+        linenum = lastKnowCharPosition[0];
+        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -439,5 +454,9 @@ void readChar(char &c){
         offset=0;
     }else{
         offset++;
+        if(c!=' ' && c!='\t'){
+            lastKnowCharPosition[0] = linenum;
+            lastKnowCharPosition[1] = offset;
+        }
     }
 }
