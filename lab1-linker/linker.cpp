@@ -79,8 +79,6 @@ class MemoryMap{
             tokenMapVector.insert(tokenMapVector.end(),tokenMap);
         }
         void removeUsedToken(string token, int module){
-            map<string, int> *tokenMap;
-            tokenMap = &tokenMapVector.back();
             tokenMapVector.back().erase(token);
         }
         void print(int totalInstructions, vector<int> &moduleOffsetsVector){
@@ -88,7 +86,7 @@ class MemoryMap{
             int moduleNumber = 1;
             cout<<"Memory Map"<<endl;
             for (vector<pair<int,string> >::iterator it=memoryMap.begin();it!= memoryMap.end();++it){
-                cout << setfill('0') << setw(3) << currentInstructionNumber-1 << ": " << (*it).first << (*it).second <<endl;
+                cout << setfill('0') << setw(3) << currentInstructionNumber-1 << ": "<< setfill('0') << setw(4) << (*it).first << (*it).second <<endl;
                 if(currentInstructionNumber==totalInstructions || (moduleNumber<moduleOffsetsVector.size() && currentInstructionNumber==moduleOffsetsVector[moduleNumber])){
                     for (map<string,int>::iterator iter = tokenMapVector[moduleNumber-1].begin(); iter != tokenMapVector[moduleNumber-1].end(); ++iter ){
                         cout << "Warning: Module "<<iter->second<<": "<<iter->first<<" appeared in the uselist but was not actually used"<<endl;
@@ -119,18 +117,21 @@ void updateModuleCount();
 void updateInstructionAndAddToMemoryMap(string,int,vector<string>&);
 void printParseError(int);
 void readChar(char &);
+void updateModuleSize();
 
 //variables
 int numberOfModules = 0;
-int currentModuleOffset = 0;
+int numberOfInstructionsParsed = 0;
 int currentModule = 0;
 vector<int> moduleOffsets;
+vector<int> moduleSize;
 SymbolTable mSymbolTable;
 MemoryMap mMemoryMap;
 ifstream fin;
 int linenum = 1;
 int offset =1;
 int lastKnowCharPosition[2];
+const int SIZE_OF_MACHINE = 512;
 
 //error codes
 static int NUM_EXPECTED = 0;              // Number expect
@@ -152,8 +153,7 @@ int main ( int argc, char *argv[] )
        //Second Pass
        pass_2(fileName);
        //Printing Memory Map
-       //value of variable currentModuleOffset will be equal to total number of instructions
-       mMemoryMap.print(currentModuleOffset,moduleOffsets);
+       mMemoryMap.print(numberOfInstructionsParsed,moduleOffsets);
        //Printing warnings for symbols which were defined but never used
        mSymbolTable.printWarningForUnusedSymbols();
     }
@@ -219,6 +219,10 @@ void parseSingleDefinition(){
     //Symbol not starting from alpha, or symbol missing
     if(((c<'a' || c>'z') && (c<'A' || c>'Z')) || fin.eof()){
         //cout << "Parse Error, symbol expected" <<endl;
+        if(fin.eof()){
+            linenum = lastKnowCharPosition[0];
+            offset = lastKnowCharPosition[1] + 1;
+        }
         printParseError(SYM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -243,7 +247,7 @@ void parseSingleDefinition(){
         offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
-    value += currentModuleOffset;
+    value += numberOfInstructionsParsed;
     mSymbolTable.addSymbol(symbol,value,currentModule);
 }
 
@@ -318,11 +322,12 @@ void parseProgramText(){
         noOfInstructions = noOfInstructions*10 + (c-'0');
         readChar(c);
     }
-    currentModuleOffset += noOfInstructions;
+    numberOfInstructionsParsed += noOfInstructions;
     for(int i=0;i<noOfInstructions;i++)
         parseInstruction();
     if(LOGS_ENABLED)
         cout<<"Number of instructions:"<< noOfInstructions <<endl;
+    updateModuleSize();
 }
 
 void parseInstruction(){
@@ -357,11 +362,8 @@ void parseInstruction(){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, Invalid opcode" <<endl;
             printParseError(NUM_EXPECTED);
-        }else if(instructionLength >= 4){
-            cout << "Invalid opcode, length is more than 4 digits" <<endl;
         }
         instruction = instruction*10 + (c-'0');
-        instructionLength++;
         readChar(c);
     }
     if(LOGS_ENABLED)
@@ -370,9 +372,14 @@ void parseInstruction(){
 
 void updateModuleCount(){
     numberOfModules++;
-    moduleOffsets.insert(moduleOffsets.end(),currentModuleOffset);
+    moduleOffsets.insert(moduleOffsets.end(),numberOfInstructionsParsed);
     if(LOGS_ENABLED)
-        cout<<"Module:"<<numberOfModules<<" has offset of:"<<currentModuleOffset<<endl;     
+        cout<<"Module:"<<numberOfModules<<" has offset of:"<<numberOfInstructionsParsed<<endl;     
+}
+
+void updateModuleSize(){
+    int size = numberOfInstructionsParsed - moduleOffsets.back() ;
+    moduleSize.insert(moduleSize.end(),size);
 }
 
 void pass_2(string filename){
@@ -474,7 +481,17 @@ void parseInstructionPass2(vector<string>& tokens){
 void updateInstructionAndAddToMemoryMap(string instructionType,int instruction,vector<string>& tokens){
     string errorMessage = "";
     if(instructionType=="R"){
-        instruction += moduleOffsets[currentModule];
+        if(instruction>9999){
+            instruction = 9999;
+            errorMessage = " Error: Illegal opcode; treated as 9999";
+        }else{
+            int relativeAddress = instruction%1000;
+            if(relativeAddress>moduleSize[currentModule]){
+                instruction = (instruction/1000)*1000;
+                errorMessage = " Error: Relative address exceeds module size; zero used";
+            }
+            instruction += moduleOffsets[currentModule];
+        }
     }else if(instructionType=="E"){
         int tokenIndex = instruction%1000;
         if(tokenIndex>=tokens.size()){
@@ -486,6 +503,17 @@ void updateInstructionAndAddToMemoryMap(string instructionType,int instruction,v
             if(!opcodePair.second){
                 errorMessage = " Error: " + tokens[tokenIndex] + " is not defined; zero used";
             }
+        }
+    }else if(instructionType=="A"){
+        int absoluteAddress = instruction%1000;
+        if(absoluteAddress>SIZE_OF_MACHINE){
+            instruction = (instruction/1000)*1000;
+            errorMessage = " Error: Absolute address exceeds machine size; zero used";
+        }
+    }else if(instructionType=="I"){
+        if(instruction>9999){
+            instruction = 9999;
+            errorMessage = " Error: Illegal immediate value; treated as 9999";
         }
     }
     mMemoryMap.addInstructionCode(instruction,errorMessage);
