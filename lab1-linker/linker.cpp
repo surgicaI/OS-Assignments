@@ -8,7 +8,6 @@
 using namespace std;
 
 const bool LOGS_ENABLED = false;
-vector<int> moduleOffsets;
 
 //Classes definition
 class SymbolTable{
@@ -84,13 +83,13 @@ class MemoryMap{
             tokenMap = &tokenMapVector.back();
             tokenMapVector.back().erase(token);
         }
-        void print(int totalInstructions){
+        void print(int totalInstructions, vector<int> &moduleOffsetsVector){
             int currentInstructionNumber = 1;
             int moduleNumber = 1;
             cout<<"Memory Map"<<endl;
             for (vector<pair<int,string> >::iterator it=memoryMap.begin();it!= memoryMap.end();++it){
                 cout << setfill('0') << setw(3) << currentInstructionNumber-1 << ": " << (*it).first << (*it).second <<endl;
-                if(currentInstructionNumber==totalInstructions || (moduleNumber<moduleOffsets.size() && currentInstructionNumber==moduleOffsets[moduleNumber])){
+                if(currentInstructionNumber==totalInstructions || (moduleNumber<moduleOffsetsVector.size() && currentInstructionNumber==moduleOffsetsVector[moduleNumber])){
                     for (map<string,int>::iterator iter = tokenMapVector[moduleNumber-1].begin(); iter != tokenMapVector[moduleNumber-1].end(); ++iter ){
                         cout << "Warning: Module "<<iter->second<<": "<<iter->first<<" appeared in the uselist but was not actually used"<<endl;
                     }
@@ -125,6 +124,7 @@ void readChar(char &);
 int numberOfModules = 0;
 int currentModuleOffset = 0;
 int currentModule = 0;
+vector<int> moduleOffsets;
 SymbolTable mSymbolTable;
 MemoryMap mMemoryMap;
 ifstream fin;
@@ -153,7 +153,7 @@ int main ( int argc, char *argv[] )
        pass_2(fileName);
        //Printing Memory Map
        //value of variable currentModuleOffset will be equal to total number of instructions
-       mMemoryMap.print(currentModuleOffset);
+       mMemoryMap.print(currentModuleOffset,moduleOffsets);
        //Printing warnings for symbols which were defined but never used
        mSymbolTable.printWarningForUnusedSymbols();
     }
