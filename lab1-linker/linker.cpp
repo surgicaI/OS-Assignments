@@ -13,7 +13,7 @@ const bool LOGS_ENABLED = false;
 class SymbolTable{
     map<string, int> symbols;
     unordered_set<string> symbolsDefinedMultipleTimes;
-    map<string, int> symbolsNotUsed;
+    map<string, int> symbolsMap2; //To get info which symbols were defined and not used
 
     //returns false if symbol is already present and true otherwise
     public:
@@ -25,14 +25,14 @@ class SymbolTable{
             return false;
         }
         symbols[symbol] = value;
-        symbolsNotUsed[symbol] = module;
+        symbolsMap2[symbol] = module;
         return true;
     }
 
     pair<int,bool> getSymbolGlobalAddress(string symbol){
         map<string,int>::const_iterator it = symbols.find(symbol);
         if(it != symbols.end()){
-            symbolsNotUsed.erase(symbol);
+            symbolsMap2.erase(symbol);
             return make_pair(it->second,true);
         }
         if(LOGS_ENABLED)
@@ -56,11 +56,30 @@ class SymbolTable{
 
     void printWarningForUnusedSymbols(){
         map<string,int>::iterator it;
-        if(!symbolsNotUsed.empty()){
+        if(!symbolsMap2.empty()){
             cout << endl;
         }
-        for (it = symbolsNotUsed.begin(); it != symbolsNotUsed.end(); ++it ){
+        for (it = symbolsMap2.begin(); it != symbolsMap2.end(); ++it ){
             cout<< "Warning: Module "<<it->second<<": "<<it->first<<" was defined but never used" <<endl;
+        }
+    }
+
+    void printWarningForTooBigSymbolValues(vector<int> &moduleSizeVector, vector<int> &moduleOffsetVector){
+        map<string,int>::iterator it;
+        string symbol = "";
+        int relativeValue = 0;
+        int moduleNumber = 0;
+        int moduleSize = 0;
+        for (it = symbols.begin(); it != symbols.end(); ++it ){
+            symbol = it->first;
+            moduleNumber = symbolsMap2[symbol];
+            relativeValue = it->second - moduleOffsetVector[moduleNumber-1];
+            moduleSize = moduleSizeVector[moduleNumber-1];
+            if(relativeValue>=moduleSize){
+                cout << "Warning: Module "<< moduleNumber <<": "<<symbol<<" too big ";
+                cout << relativeValue << " (max="<< moduleSize-1 <<") assume zero relative" <<endl;
+                symbols[symbol] = moduleOffsetVector[moduleNumber-1];
+            }
         }
     }
 };
@@ -147,6 +166,8 @@ int main ( int argc, char *argv[] )
        string fileName = argv[1];
        //First Pass
        pass_1(fileName);
+       //Priting warnings if symbol value is greater than size of module
+       mSymbolTable.printWarningForTooBigSymbolValues(moduleSize,moduleOffsets);
        //Printing Symbol Table
        mSymbolTable.print();
        //Second Pass
