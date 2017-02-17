@@ -8,6 +8,7 @@
 using namespace std;
 
 const bool LOGS_ENABLED = false;
+vector<int> moduleOffsets;
 
 //Classes definition
 class SymbolTable{
@@ -66,17 +67,36 @@ class SymbolTable{
 };
 class MemoryMap{
     vector<pair<int,string> > memoryMap;
+    vector<map<string, int> > tokenMapVector;
     public:
         void addInstructionCode(int instructionCode,string errorMessage){
             pair<int,string> instructionCodePair = make_pair(instructionCode,errorMessage);
             memoryMap.insert(memoryMap.end(),instructionCodePair);
         }
-        void print(){
-            int index = 0;
+        void addTokens(vector<string> tokens, int module){
+            map<string, int> tokenMap;
+            for (int i=0; i<tokens.size(); ++i)
+                tokenMap[tokens[i]] = module+1;
+            tokenMapVector.insert(tokenMapVector.end(),tokenMap);
+        }
+        void removeUsedToken(string token, int module){
+            map<string, int> *tokenMap;
+            tokenMap = &tokenMapVector.back();
+            tokenMapVector.back().erase(token);
+        }
+        void print(int totalInstructions){
+            int currentInstructionNumber = 1;
+            int moduleNumber = 1;
             cout<<"Memory Map"<<endl;
             for (vector<pair<int,string> >::iterator it=memoryMap.begin();it!= memoryMap.end();++it){
-                cout << setfill('0') << setw(3) << index << ": " << (*it).first << (*it).second <<endl;
-                index++;
+                cout << setfill('0') << setw(3) << currentInstructionNumber-1 << ": " << (*it).first << (*it).second <<endl;
+                if(currentInstructionNumber==totalInstructions || (moduleNumber<moduleOffsets.size() && currentInstructionNumber==moduleOffsets[moduleNumber])){
+                    for (map<string,int>::iterator iter = tokenMapVector[moduleNumber-1].begin(); iter != tokenMapVector[moduleNumber-1].end(); ++iter ){
+                        cout << "Warning: Module "<<iter->second<<": "<<iter->first<<" appeared in the uselist but was not actually used"<<endl;
+                    }
+                    moduleNumber++;
+                }
+                currentInstructionNumber++;
             }
         }
 };
@@ -105,7 +125,6 @@ void readChar(char &);
 int numberOfModules = 0;
 int currentModuleOffset = 0;
 int currentModule = 0;
-vector<int> moduleOffsets;
 SymbolTable mSymbolTable;
 MemoryMap mMemoryMap;
 ifstream fin;
@@ -133,7 +152,8 @@ int main ( int argc, char *argv[] )
        //Second Pass
        pass_2(fileName);
        //Printing Memory Map
-       mMemoryMap.print();
+       //value of variable currentModuleOffset will be equal to total number of instructions
+       mMemoryMap.print(currentModuleOffset);
        //Printing warnings for symbols which were defined but never used
        mSymbolTable.printWarningForUnusedSymbols();
     }
@@ -364,6 +384,7 @@ void pass_2(string filename){
         //parsing inpput file second time
         parseDefinitionsPass2();
         vector<string> tokens = parseUseListPass2();
+        mMemoryMap.addTokens(tokens,currentModule);
         parseProgramTextPass2(tokens);
         currentModule++;
     }
@@ -461,6 +482,7 @@ void updateInstructionAndAddToMemoryMap(string instructionType,int instruction,v
         }else{
             pair<int,bool> opcodePair = mSymbolTable.getSymbolGlobalAddress(tokens[tokenIndex]);
             instruction = ((instruction/1000)*1000) + opcodePair.first;
+            mMemoryMap.removeUsedToken(tokens[tokenIndex],currentModule);
             if(!opcodePair.second){
                 errorMessage = " Error: " + tokens[tokenIndex] + " is not defined; zero used";
             }
