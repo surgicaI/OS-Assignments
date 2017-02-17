@@ -3,7 +3,8 @@
 #include <fstream>
 #include <vector>
 #include <iomanip>
-#include <utility> 
+#include <utility>
+#include <unordered_set>
 using namespace std;
 
 const bool LOGS_ENABLED = false;
@@ -11,24 +12,27 @@ const bool LOGS_ENABLED = false;
 //Classes definition
 class SymbolTable{
     map<string, int> symbols;
-    map<string, int> symbolsUsedMultipleTimes;
+    unordered_set<string> symbolsDefinedMultipleTimes;
+    map<string, int> symbolsNotUsed;
 
     //returns false if symbol is already present and true otherwise
     public:
-    bool addSymbol(string symbol, int value){
+    bool addSymbol(string symbol, int value, int module){
         if(symbols.find(symbol) != symbols.end()){
             if(LOGS_ENABLED)
                 cout<<"Symbol already present in symbol table"<<endl;
-            symbolsUsedMultipleTimes[symbol] = value;
+            symbolsDefinedMultipleTimes.insert(symbol);
             return false;
         }
         symbols[symbol] = value;
+        symbolsNotUsed[symbol] = module;
         return true;
     }
 
     pair<int,bool> getSymbolGlobalAddress(string symbol){
         map<string,int>::const_iterator it = symbols.find(symbol);
         if(it != symbols.end()){
+            symbolsNotUsed.erase(symbol);
             return make_pair(it->second,true);
         }
         if(LOGS_ENABLED)
@@ -42,12 +46,22 @@ class SymbolTable{
         map<string,int>::iterator it;
         for (it = symbols.begin(); it != symbols.end(); ++it ){
             cout << it->first << "=" << it->second;
-            if(symbolsUsedMultipleTimes.find(it->first) != symbolsUsedMultipleTimes.end())
+            if(symbolsDefinedMultipleTimes.find(it->first) != symbolsDefinedMultipleTimes.end())
                 cout << " Error: This variable is multiple times defined; first value used" << endl;
             else
                 cout << endl;
         }
         cout <<endl;
+    }
+
+    void printWarningForUnusedSymbols(){
+        map<string,int>::iterator it;
+        if(!symbolsNotUsed.empty()){
+            cout << endl;
+        }
+        for (it = symbolsNotUsed.begin(); it != symbolsNotUsed.end(); ++it ){
+            cout<< "Warning: Module "<<it->second<<": "<<it->first<<" was defined but never used" <<endl;
+        }
     }
 };
 class MemoryMap{
@@ -120,6 +134,8 @@ int main ( int argc, char *argv[] )
        pass_2(fileName);
        //Printing Memory Map
        mMemoryMap.print();
+       //Printing warnings for symbols which were defined but never used
+       mSymbolTable.printWarningForUnusedSymbols();
     }
     else
         cout << "Please provide the filename in arguments"<<endl;
@@ -131,8 +147,10 @@ void pass_1(string filename){
     fin.open(filename);
     linenum =1;
     offset = 0;
+    currentModule = 0;
     while(!fin.eof()){
         //parsing inpput file
+        currentModule++;
         parseDefinitions();
         if(fin.eof()) break;
         parseUseList();
@@ -206,7 +224,7 @@ void parseSingleDefinition(){
         printParseError(NUM_EXPECTED);
     }
     value += currentModuleOffset;
-    mSymbolTable.addSymbol(symbol,value);
+    mSymbolTable.addSymbol(symbol,value,currentModule);
 }
 
 void parseUseList(){
@@ -341,6 +359,7 @@ void pass_2(string filename){
     fin.open(filename);
     linenum = 1;
     offset = 0;
+    currentModule = 0;
     while(!fin.eof()){
         //parsing inpput file second time
         parseDefinitionsPass2();
