@@ -456,10 +456,14 @@ void updateInstructionAndAddToMemoryMap(string instructionType,int instruction,v
         instruction += moduleOffsets[currentModule];
     }else if(instructionType=="E"){
         int tokenIndex = instruction%1000;
-        pair<int,bool> opcodePair = mSymbolTable.getSymbolGlobalAddress(tokens[tokenIndex]);
-        instruction = ((instruction/1000)*1000) + opcodePair.first;
-        if(!opcodePair.second){
-            errorMessage = " Error: " + tokens[tokenIndex] + " is not defined; zero used";
+        if(tokenIndex>=tokens.size()){
+            errorMessage = " Error: External address exceeds length of uselist; treated as immediate";
+        }else{
+            pair<int,bool> opcodePair = mSymbolTable.getSymbolGlobalAddress(tokens[tokenIndex]);
+            instruction = ((instruction/1000)*1000) + opcodePair.first;
+            if(!opcodePair.second){
+                errorMessage = " Error: " + tokens[tokenIndex] + " is not defined; zero used";
+            }
         }
     }
     mMemoryMap.addInstructionCode(instruction,errorMessage);
