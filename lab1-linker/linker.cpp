@@ -130,7 +130,6 @@ MemoryMap mMemoryMap;
 ifstream fin;
 int linenum = 1;
 int offset =1;
-int lastKnowCharPosition[2];
 const int SIZE_OF_MACHINE = 512;
 
 //error codes
@@ -188,9 +187,13 @@ void parseDefinitions(){
         noOfDefinitions = 0;
         updateModuleCount();
     }
+    int definitionsStartOffset = offset;
+    int definitionsStartLine = linenum;
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, unexpected symbol encountered" <<endl;
+            offset = definitionsStartOffset;
+            linenum = definitionsStartLine;
             printParseError(NUM_EXPECTED);
         }
         noOfDefinitions = noOfDefinitions*10 + (c-'0');
@@ -198,11 +201,11 @@ void parseDefinitions(){
     }
     if(fin.eof() && noOfDefinitions==0){
         //cout << "Parse Error,  use_list expected" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
     if(noOfDefinitions>16){
+        offset = definitionsStartOffset;
+        linenum = definitionsStartLine;
         printParseError(TO_MANY_DEF_IN_MODULE);
     }
     for(int i=0;i<noOfDefinitions;i++)
@@ -219,10 +222,6 @@ void parseSingleDefinition(){
     //Symbol not starting from alpha, or symbol missing
     if(((c<'a' || c>'z') && (c<'A' || c>'Z')) || fin.eof()){
         //cout << "Parse Error, symbol expected" <<endl;
-        if(fin.eof()){
-            linenum = lastKnowCharPosition[0];
-            offset = lastKnowCharPosition[1] + 1;
-        }
         printParseError(SYM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -243,8 +242,6 @@ void parseSingleDefinition(){
     }
     if(fin.eof()){
         //cout << "Parse Error, symbol value expected, or useList missing" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
     value += numberOfInstructionsParsed;
@@ -255,9 +252,13 @@ void parseUseList(){
     int noOfTokens = 0;
     char c = ' ';
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
+    int useStartOffset = offset;
+    int useStartLine = linenum;
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, unexpected symbol encountered" <<endl;
+            offset = useStartOffset;
+            linenum = useStartLine;
             printParseError(NUM_EXPECTED);
         }
         noOfTokens = noOfTokens*10 + (c-'0');
@@ -267,11 +268,11 @@ void parseUseList(){
         cout<<"Number of tokens:"<< noOfTokens <<endl;
     if(fin.eof()){
         //cout << "Parse Error, missing token" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(SYM_EXPECTED);
     }
     if(noOfTokens>16){
+        offset = useStartOffset;
+        linenum = useStartLine;
         printParseError(TO_MANY_USE_IN_MODULE);
     }
     for(int i=0;i<noOfTokens;i++)
@@ -296,8 +297,6 @@ void parseToken(){
     }
     if(fin.eof()){
         //cout << "Parse Error, missing token in use list" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(SYM_EXPECTED);
     }
     if(LOGS_ENABLED)
@@ -310,10 +309,10 @@ void parseProgramText(){
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
         //cout << "Parse Error, missing program text" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
+    int instructionsStartOffset = offset;
+    int instructionsStartLine = linenum;
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, unexpected symbol encountered" <<endl;
@@ -323,6 +322,11 @@ void parseProgramText(){
         readChar(c);
     }
     numberOfInstructionsParsed += noOfInstructions;
+    if(numberOfInstructionsParsed>SIZE_OF_MACHINE){
+        offset = instructionsStartOffset;
+        linenum = instructionsStartLine;
+        printParseError(TO_MANY_INSTR);
+    }
     for(int i=0;i<noOfInstructions;i++)
         parseInstruction();
     if(LOGS_ENABLED)
@@ -338,8 +342,6 @@ void parseInstruction(){
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
         //cout << "Parse Error, missing instruction Type" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(ADDR_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -354,8 +356,6 @@ void parseInstruction(){
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar(c);
     if(fin.eof()){
         //cout << "Parse Error, missing opcode" <<endl;
-        linenum = lastKnowCharPosition[0];
-        offset = lastKnowCharPosition[1] + 1;
         printParseError(NUM_EXPECTED);
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
@@ -540,9 +540,5 @@ void readChar(char &c){
         offset=0;
     }else{
         offset++;
-        if(c!=' ' && c!='\t'){
-            lastKnowCharPosition[0] = linenum;
-            lastKnowCharPosition[1] = offset;
-        }
     }
 }
