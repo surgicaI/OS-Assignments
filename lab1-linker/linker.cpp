@@ -267,6 +267,9 @@ void parseSingleDefinition(){
     }
     value += numberOfInstructionsParsed;
     mSymbolTable.addSymbol(symbol,value,currentModule);
+    if(LOGS_ENABLED){
+        cout<<"Symbol:"<<symbol<<" value:"<<value<<endl;
+    }
 }
 
 void parseUseList(){
