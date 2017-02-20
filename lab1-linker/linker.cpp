@@ -546,6 +546,7 @@ void printParseError(int errcode) {
         "TO_MANY_INSTR",             // total num_instr exceeds memory size (512)
     };
     cout << "Parse Error line " + to_string(linenum) + " offset " + to_string(offset) + ": " <<errstr[errcode]<<endl;
+    fin.close();
     exit(0);
 }
 
