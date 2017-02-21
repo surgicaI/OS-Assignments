@@ -242,6 +242,8 @@ void parseSingleDefinition(){
     int value = 0;
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar();
     //Symbol not starting from alpha, or symbol missing
+    int startOffset = offset;
+    int startLineNum = linenum;
     if(((c<'a' || c>'z') && (c<'A' || c>'Z')) || fin.eof()){
         //cout << "Parse Error, symbol expected" <<endl;
         printParseError(SYM_EXPECTED);
@@ -249,14 +251,25 @@ void parseSingleDefinition(){
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         symbol = symbol + c;
         if(symbol.length()>16){
+            offset = startOffset;
+            linenum = startLineNum;
             printParseError(SYM_TOO_LONG);
+        }
+        if((c<'a' || c>'z') && (c<'A' || c>'Z') && (c<'0' || c>'9')){
+            offset = startOffset;
+            linenum = startLineNum;
+            printParseError(SYM_EXPECTED);
         }
         readChar();
     }
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar();
+    startOffset = offset;
+    startLineNum = linenum;
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, symbol value should be numeric" <<endl;
+            offset = startOffset;
+            linenum = startLineNum;
             printParseError(NUM_EXPECTED);
         }
         value = value*10 + (c-'0');
@@ -306,6 +319,8 @@ void parseUseList(){
 void parseToken(){
     string token = "";
     while ((c==' ' || c=='\n' || c== '\t') && !fin.eof()) readChar();
+    int useStartOffset = offset;
+    int useStartLine = linenum;
     //Symbol not starting from alpha
     if((c<'a' || c>'z') && (c<'A' || c>'Z')){
         //cout << "Parse Error, symbol expected" <<endl;
@@ -313,7 +328,14 @@ void parseToken(){
     }
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         token = token + c;
+        if((c<'a' || c>'z') && (c<'A' || c>'Z') && (c<'0' || c>'9')){
+            offset = useStartOffset;
+            linenum = useStartLine;
+            printParseError(SYM_EXPECTED);
+        }
         if(token.length()>16){
+            offset = useStartOffset;
+            linenum = useStartLine;
             printParseError(SYM_TOO_LONG);
         }
         readChar();
@@ -338,6 +360,8 @@ void parseProgramText(){
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, unexpected symbol encountered" <<endl;
+            linenum = instructionsStartLine;
+            offset = instructionsStartOffset;
             printParseError(NUM_EXPECTED);
         }
         noOfInstructions = noOfInstructions*10 + (c-'0');
@@ -365,12 +389,16 @@ void parseInstruction(){
         //cout << "Parse Error, missing instruction Type" <<endl;
         printParseError(ADDR_EXPECTED);
     }
+    int startOffset = offset;
+    int startLineNum = linenum;
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if((instructionType.length()==0) && (c=='I' || c=='A' || c=='R' || c=='E')){
             instructionType = instructionType + c;
             readChar();
         }else{
             //cout << "Parse Error, invalid instruction type" <<endl;
+            linenum = startLineNum;
+            offset = startOffset;
             printParseError(ADDR_EXPECTED);
         }
     }
@@ -379,9 +407,13 @@ void parseInstruction(){
         //cout << "Parse Error, missing opcode" <<endl;
         printParseError(NUM_EXPECTED);
     }
+    startOffset = offset;
+    startLineNum = linenum;
     while ((c!=' ' && c!='\n' && c!= '\t') && !fin.eof()){
         if(c<'0' || c>'9'){
             //cout << "Parse Error, Invalid opcode" <<endl;
+            linenum = startLineNum;
+            offset = startOffset;
             printParseError(NUM_EXPECTED);
         }
         instruction = instruction*10 + (c-'0');
