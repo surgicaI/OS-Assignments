@@ -1,0 +1,6 @@
+Instructions:
+
+1. To compile code, open terminal and change to this directory. Then type command "make".
+2. This will compile the code and generate output "linker"
+3. Then type command "./runit.sh <Path to output dir> ./linker". This will generate output and save in output directory.
+4. Then type command "./gradeit.sh . <Path to output directory>". This will evaluate the output genarated by the code.
