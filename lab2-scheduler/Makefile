@@ -1,2 +1,2 @@
-scheduler: scheduler.cpp
-	g++48 -Wall -o scheduler scheduler.cpp scheduler_spec.cpp -static -std=gnu++11
+scheduler: simulation.cpp
+	g++48 -Wall -o scheduler simulation.cpp scheduler.cpp -static -std=gnu++11

@@ -1,88 +1,123 @@
+#include <iostream>
+#include <queue>
+#include "util.h"
 #include "scheduler.h"
 
-/*-------------------------------------------------------
-Variable declarations
----------------------------------------------------------*/
-bool verbose_output = false;
-const bool LOGS_ENABLED = false;
-Scheduler* my_scheduler;
-priority_queue<Process*, vector<Process*>, ProcessComparator> event_queue;
-int* randvals;
-int randvals_size = 0;
+using namespace std;
 
 /*-------------------------------------------------------
-Main function
+Implementation of first come first serve scheduler
 ---------------------------------------------------------*/
-int main(int argc, char* argv[]){
-    //Reading input from console and initializing
-    int c;
-    char *s_value = NULL;
-    string input_file = "";
-    while ((c = getopt(argc, argv, "vs:")) != -1){
-        switch (c){
-            case 'v':
-                verbose_output = true;
-                break;
-            case 's':
-                s_value = optarg;
-                break;
-            case '?':
-                if (optopt == 's')
-                    fprintf (stderr, "Option -%c requires an argument.\n", optopt);
-                else if (isprint (optopt))
-                    fprintf (stderr, "Unknown option `-%c'.\n", optopt);
-                else
-                    fprintf (stderr,"Unknown option character `\\x%x'.\n", optopt);
-                return 1;
-            default:
-                abort ();
-        }
+Process* FCFS::getEvent(){
+    if(!isEmpty()){
+        Process *process;
+        process = ready_queue.front();
+        ready_queue.pop();
+        return process;
     }
-
-    //analysing non-option arguments
-    if(optind+1>=argc){
-        cout << "'Input file' or 'random file' not provided" <<endl;
-        return 0;
-    }
-    input_file = argv[optind];
-
-    //Create scheduler object corresponding to the argument
-    if(s_value==NULL){
-        cout << "Scheduler specification not provided" << endl;
-        return 0;
-    } else if (*s_value == 'F'){
-        my_scheduler = new FCFS();
-    } else if (*s_value == 'L'){
-        my_scheduler = new LCFS();
-    } else if (*s_value == 'S'){
-        my_scheduler = new SJF();
-    } else if (*s_value == 'R'){
-        s_value++;
-        int x = atoi(s_value);
-        my_scheduler = new RR(x);
-    } else if (*s_value == 'P'){
-        s_value++;
-        int x = atoi(s_value);
-        my_scheduler = new PRIO(x);
-    } else{
-        cout << "Unknown scheduler argument" <<endl;
-    }
-
-    init_random_vals(argv[optind+1]);
-    return 0;
+    return NULL;
+}
+void FCFS::setEvent(Process* p){
+        ready_queue.push(p);
+}
+bool FCFS::isEmpty(){
+    return ready_queue.empty();
+}
+string FCFS::getName(){
+    return "FCFS";
 }
 
 /*-------------------------------------------------------
-Method definitions
+Implementation of last come first serve scheduler
 ---------------------------------------------------------*/
-void init_random_vals(string rand_file_name){
-    ifstream fin(rand_file_name);
-    fin  >> randvals_size;
-    randvals = new int[randvals_size];
-    int index = 0, num = 0;
-    while(fin>>num){
-        randvals[index] = num;
-        index++;
+Process* LCFS::getEvent(){
+    if(!isEmpty()){
+        Process *process;
+        process = ready_queue.front();
+        ready_queue.pop();
+        return process;
     }
+    return NULL;
+}
+void LCFS::setEvent(Process* p){
+        ready_queue.push(p);
+}
+bool LCFS::isEmpty(){
+    return ready_queue.empty();
+}
+string LCFS::getName(){
+    return "LCFS";
 }
 
+/*-------------------------------------------------------
+Implementation of shortest Job first scheduler
+---------------------------------------------------------*/
+Process* SJF::getEvent(){
+    if(!isEmpty()){
+        Process *process;
+        process = ready_queue.front();
+        ready_queue.pop();
+        return process;
+    }
+    return NULL;
+}
+void SJF::setEvent(Process* p){
+        ready_queue.push(p);
+}
+bool SJF::isEmpty(){
+    return ready_queue.empty();
+}
+string SJF::getName(){
+    return "SJF";
+}
+
+/*-------------------------------------------------------
+Implementation of Round Robin scheduler
+---------------------------------------------------------*/
+RR::RR(int n){
+    quantum = n;
+}
+Process* RR::getEvent(){
+    if(!isEmpty()){
+        Process *process;
+        process = ready_queue.front();
+        ready_queue.pop();
+        return process;
+    }
+    return NULL;
+}
+void RR::setEvent(Process* p){
+    ready_queue.push(p);
+}
+bool RR::isEmpty(){
+    return ready_queue.empty();
+}
+string RR::getName(){
+    return "RR " + to_string(quantum);
+}
+
+/*-------------------------------------------------------
+Implementation of priority based scheduler
+---------------------------------------------------------*/
+PRIO::PRIO(int n)
+{
+    quantum = n;
+}
+Process* PRIO::getEvent(){
+    if(!isEmpty()){
+        Process *process;
+        process = ready_queue.front();
+        ready_queue.pop();
+        return process;
+    }
+    return NULL;
+}
+void PRIO::setEvent(Process* p){
+    ready_queue.push(p);
+}
+bool PRIO::isEmpty(){
+    return ready_queue.empty();
+}
+string PRIO::getName(){
+    return "PRIO " + to_string(quantum);
+}
