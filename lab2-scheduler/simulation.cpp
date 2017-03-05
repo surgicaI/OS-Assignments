@@ -161,38 +161,10 @@ void runSimulation(){
         event_queue.pop();
         current_time = process->event_time;
         int time_in_previous_state = current_time - process->state_start_time;
-        if(process->state==STATE_CREATED){
-            process->previous_state = process->state;
-            process->state = STATE_READY;
-            process->state_start_time = current_time;
-            my_scheduler->setEvent(process);
-            /*-------------------------------------------------------
-            Rule: Processes with the same arrival time should be 
-            entered into the run queue in the order of their
-            occurrence in the input file
-            ---------------------------------------------------------*/
-            while(true){
-                if(verbose_output){
-                    cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
-                    cout<<": "<<process->previous_state<<" -> "<<process->state<<endl;
-                }
-                if(!event_queue.empty()){
-                    process = event_queue.top();
-                    if(process->AT==current_time){
-                        event_queue.pop();
-                        time_in_previous_state = current_time - process->state_start_time;
-                        process->previous_state = process->state;
-                        process->state = STATE_READY;
-                        process->state_start_time = current_time;
-                        my_scheduler->setEvent(process);
-                    }else
-                        break;
-                }else{
-                    break;
-                }
+        if(process->state==STATE_CREATED || process->state==STATE_BLOCKED){
+            if(process->state==STATE_BLOCKED){
+                process->IT = process->IT + time_in_previous_state;
             }
-        }else if(process->state==STATE_BLOCKED){
-            process->IT = process->IT + time_in_previous_state;
             process->previous_state = process->state;
             process->state = STATE_READY;
             process->state_start_time = current_time;
@@ -200,6 +172,18 @@ void runSimulation(){
             if(verbose_output){
                 cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                 cout<<": "<<process->previous_state<<" -> "<<process->state<<endl;
+            }
+            /*-------------------------------------------------------
+            Rule: Processes with the same arrival time should be 
+            entered into the run queue in the order of their
+            occurrence in the input file
+            Rule: You must process all events at a given time stamp 
+            before invoking the scheduler/dispatcher
+            ---------------------------------------------------------*/
+            if(!event_queue.empty()){
+                process = event_queue.top();
+                if(process->event_time==current_time)
+                    continue;
             }
         }else if(process->state==STATE_RUNNING){
             process->previous_state = process->state;
@@ -224,6 +208,15 @@ void runSimulation(){
                     cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state<<": Done"<<endl;
             }
             process_running_in_cpu = false;
+            /*-------------------------------------------------------
+            Rule: You must process all events at a given time stamp 
+            before invoking the scheduler/dispatcher
+            ---------------------------------------------------------*/
+            if(!event_queue.empty()){
+                process = event_queue.top();
+                if(process->event_time==current_time)
+                    continue;
+            }
         }else if(process->state==STATE_PREMPT){
             //do something
         }
