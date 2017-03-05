@@ -1,6 +1,3 @@
-#include <iostream>
-#include <queue>
-#include "util.h"
 #include "scheduler.h"
 
 using namespace std;
@@ -33,17 +30,17 @@ Implementation of last come first serve scheduler
 Process* LCFS::getEvent(){
     if(!isEmpty()){
         Process *process;
-        process = ready_queue.front();
-        ready_queue.pop();
+        process = ready_stack.top();
+        ready_stack.pop();
         return process;
     }
     return NULL;
 }
 void LCFS::setEvent(Process* p){
-        ready_queue.push(p);
+    ready_stack.push(p);
 }
 bool LCFS::isEmpty(){
-    return ready_queue.empty();
+    return ready_stack.empty();
 }
 string LCFS::getName(){
     return "LCFS";

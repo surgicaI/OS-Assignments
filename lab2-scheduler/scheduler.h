@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <queue>
+#include <stack>
 #include "util.h"
 
 using namespace std;
@@ -36,7 +37,7 @@ class for all LCFS scheduler
 ---------------------------------------------------------*/
 class LCFS: public Scheduler{
 private:
-    queue<Process*> ready_queue;
+    stack<Process*> ready_stack;
 public:
     Process* getEvent();
     void setEvent(Process* p);
