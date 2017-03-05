@@ -2,6 +2,7 @@
 #define UTIL_H_INCLUDED
 
 #include <iostream>
+#include <utility>
 using namespace std;
 
 /*-------------------------------------------------------
@@ -59,4 +60,16 @@ public:
         return lhs->id > rhs->id;
     }
 };
+class IOTimePairComparator{
+public:
+    bool operator() (pair<int,int> t1,pair<int,int> t2) const
+    {
+        if (t1.first == t2.first){
+            return t1.second > t2.second;
+        }else{
+            return t1.first > t2.first;
+        }
+    }
+};
 #endif
+

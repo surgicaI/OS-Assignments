@@ -6,6 +6,7 @@ Variable declarations
 Scheduler* my_scheduler;
 priority_queue<Process*, vector<Process*>, ProcessComparator> event_queue;
 priority_queue<Process*, vector<Process*>, FinishedProcessesComparator> finished_process_queue;
+priority_queue<pair<int,int>, vector<pair<int,int> >, IOTimePairComparator> io_util_queue;
 int randvals_size = 0;
 int* randvals;
 int ofs = 0; //offset for random values 
@@ -103,9 +104,10 @@ void initSimulation(string input_file){
     int total_cpu_time = 0;
     int cpu_burst = 0;
     int io_burst = 0;
+    int insert_order = 0;
     ifstream fin(input_file);
     while((fin >> arrival_time) && (fin >> total_cpu_time) && (fin >> cpu_burst) && (fin >> io_burst)){
-        createProcess(arrival_time,total_cpu_time,cpu_burst,io_burst);
+        createProcess(arrival_time,total_cpu_time,cpu_burst,io_burst,insert_order++);
     }
     /*-------------------------------------------------------
     For debugging purposes
@@ -123,7 +125,7 @@ void initSimulation(string input_file){
     }
 }
 
-void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_burst){
+void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_burst, int insert_order){
     Process * process = new Process();
     process->id = process_id++;
     process->AT = arrival_time;
@@ -138,6 +140,7 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->state = STATE_CREATED;
     process->previous_state = "";
     process->state_start_time = arrival_time;
+    process->insert_order = insert_order;
     event_queue.push(process);
     /*-------------------------------------------------------
     For debugging purposes
@@ -158,10 +161,38 @@ void runSimulation(){
         event_queue.pop();
         current_time = process->event_time;
         int time_in_previous_state = current_time - process->state_start_time;
-        if(process->state==STATE_CREATED || process->state==STATE_BLOCKED){
-            if(process->state==STATE_BLOCKED){
-                process->IT = process->IT + time_in_previous_state;
+        if(process->state==STATE_CREATED){
+            process->previous_state = process->state;
+            process->state = STATE_READY;
+            process->state_start_time = current_time;
+            my_scheduler->setEvent(process);
+            /*-------------------------------------------------------
+            Rule: Processes with the same arrival time should be 
+            entered into the run queue in the order of their
+            occurrence in the input file
+            ---------------------------------------------------------*/
+            while(true){
+                if(verbose_output){
+                    cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                    cout<<": "<<process->previous_state<<" -> "<<process->state<<endl;
+                }
+                if(!event_queue.empty()){
+                    process = event_queue.top();
+                    if(process->AT==current_time){
+                        event_queue.pop();
+                        time_in_previous_state = current_time - process->state_start_time;
+                        process->previous_state = process->state;
+                        process->state = STATE_READY;
+                        process->state_start_time = current_time;
+                        my_scheduler->setEvent(process);
+                    }else
+                        break;
+                }else{
+                    break;
+                }
             }
+        }else if(process->state==STATE_BLOCKED){
+            process->IT = process->IT + time_in_previous_state;
             process->previous_state = process->state;
             process->state = STATE_READY;
             process->state_start_time = current_time;
@@ -179,6 +210,7 @@ void runSimulation(){
                 process->event_time = current_time+process->io_burst;
                 process->state_start_time = current_time;
                 event_queue.push(process);
+                addIOTime(current_time,current_time+process->io_burst);
                 if(verbose_output){
                     cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                     cout<<": "<<process->previous_state<<" -> "<<process->state;
@@ -224,7 +256,7 @@ void printStatistics(){
     Process* process;
     double number_of_process = 0;
     double cpu_util = 0;
-    double io_util = 0;
+    double io_util = calcIOUtil();
     double avg_turnaround = 0;
     double avg_waittime = 0.0;
     double throughput = 0;
@@ -234,7 +266,6 @@ void printStatistics(){
         //calculations
         number_of_process++;
         cpu_util += process->TC;
-        io_util += process->IT;
         avg_turnaround += process->TT;
         avg_waittime += process->CW;
         //printing
@@ -265,7 +296,28 @@ void printStatistics(){
            throughput);
 }
 
+void addIOTime(int start_time,int end_time){
+    pair<int,int> io_time = make_pair(start_time,end_time);
+    io_util_queue.push(io_time);
+}
 
+int calcIOUtil(){
+    int result = 0;
+    while(!io_util_queue.empty()){
+        pair<int,int> io_time = io_util_queue.top();
+        io_util_queue.pop();
+        while(!io_util_queue.empty()){
+            pair<int,int> io_time_next = io_util_queue.top();
+            if(io_time_next.first<=io_time.second){
+                io_util_queue.pop();
+                io_time.second = max(io_time.second,io_time_next.second);
+            }else
+                break;
+        }
+        result = result + io_time.second - io_time.first;
+    }
+    return result;
+}
 
 
 
