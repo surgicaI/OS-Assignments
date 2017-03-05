@@ -4,6 +4,20 @@
 #include <iostream>
 using namespace std;
 
+/*-------------------------------------------------------
+Constants
+---------------------------------------------------------*/
+static bool verbose_output = false;
+static const bool LOGS_ENABLED = false;
+static const string STATE_CREATED = "CREATED";
+static const string STATE_READY = "READY";
+static const string STATE_RUNNING = "RUNNING";
+static const string STATE_BLOCKED = "BLOCKED";
+static const string STATE_PREMPT = "PREMPT";
+
+/*-------------------------------------------------------
+Classes
+---------------------------------------------------------*/
 class Process{
 public:
     int id;
@@ -11,7 +25,8 @@ public:
     int TC;
     int CB;
     int IO;
-    string State;
+    string state;
+    string previous_state;
     int FT;
     int TT;
     int IT;
@@ -22,6 +37,7 @@ public:
     int io_burst;
     int insert_order;
     int quantum;
+    int priority;
 };
 
 class ProcessComparator{

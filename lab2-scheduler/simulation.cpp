@@ -3,14 +3,13 @@
 /*-------------------------------------------------------
 Variable declarations
 ---------------------------------------------------------*/
-bool verbose_output = false;
-const bool LOGS_ENABLED = false;
 Scheduler* my_scheduler;
 priority_queue<Process*, vector<Process*>, ProcessComparator> event_queue;
 int randvals_size = 0;
 int* randvals;
 int ofs = 0; //offset for random values 
 int process_id = 0;
+int current_time = 0;
 
 /*-------------------------------------------------------
 Main function
@@ -69,15 +68,16 @@ int main(int argc, char* argv[]){
         cout << "Unknown scheduler argument" <<endl;
     }
 
-    init_random_vals(argv[optind+1]);
-    init_simulation(argv[optind]);
+    initRandomVals(argv[optind+1]);
+    initSimulation(argv[optind]);
+    runSimulation();
     return 0;
 }
 
 /*-------------------------------------------------------
 Method definitions
 ---------------------------------------------------------*/
-void init_random_vals(string rand_file_name){
+void initRandomVals(string rand_file_name){
     ifstream fin(rand_file_name);
     fin  >> randvals_size;
     randvals = new int[randvals_size];
@@ -88,15 +88,35 @@ void init_random_vals(string rand_file_name){
     }
 }
 
-void init_simulation(string input_file){
+int getrand(int n){
+    int result = 1 + (randvals[ofs] % n);
+    if (++ofs >= randvals_size)
+        ofs = 0;
+    return result;
+}
+
+void initSimulation(string input_file){
     int arrival_time = 0;
     int total_cpu_time = 0;
     int cpu_burst = 0;
     int io_burst = 0;
     ifstream fin(input_file);
-    while(!fin.eof()){
-        fin >> arrival_time >> total_cpu_time >> cpu_burst >> io_burst;
+    while((fin >> arrival_time) && (fin >> total_cpu_time) && (fin >> cpu_burst) && (fin >> io_burst)){
         createProcess(arrival_time,total_cpu_time,cpu_burst,io_burst);
+    }
+    /*-------------------------------------------------------
+    For debugging purposes
+    ---------------------------------------------------------*/
+    if(LOGS_ENABLED){
+        cout<<"initSimulation(): start, event_queue:"<<endl;
+        priority_queue<Process*, vector<Process*>, ProcessComparator> event_queue2;
+        event_queue2 = event_queue;
+        while(!event_queue2.empty()){
+            Process *p = event_queue2.top();
+            event_queue2.pop();
+            cout<<p->id<<" "<<p->AT<<" "<<p->TC<<" "<<p->CB<<" "<<p->IO<<endl;
+        }
+        cout<<"initSimulation(): end, event_queue:"<<endl;
     }
 }
 
@@ -108,6 +128,52 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->CB = cpu_burst;
     process->IO = io_burst;
     process->time_left = total_cpu_time;
+    process->priority = getrand(4);
+    process->event_time = arrival_time;
+    process->state = STATE_CREATED;
+    process->previous_state = "";
     event_queue.push(process);
+    /*-------------------------------------------------------
+    For debugging purposes
+    ---------------------------------------------------------*/
+    if(LOGS_ENABLED){
+        cout<<"createProcess():"<< "arrival_time:" << arrival_time << " ";
+        cout<<"total_cpu_time:"<<total_cpu_time<< " ";
+        cout<<"cpu_burst:"<<cpu_burst<< " ";
+        cout<<"io_burst:"<<io_burst<< " ";
+        cout<<"priority:"<<process->priority<< " "<<endl;
+    }
 }
+
+void runSimulation(){
+    //while event queue is not empty
+    while(!event_queue.empty()){
+        Process* process = event_queue.top();
+        event_queue.pop();
+        current_time = process->event_time;
+        if(process->state==STATE_CREATED || process->state==STATE_BLOCKED){
+            process->previous_state = process->state;
+            process->state = STATE_READY;
+            my_scheduler->setEvent(process);
+        }else if(process->state==STATE_RUNNING){
+            process->previous_state = process->state;
+            process->state = STATE_BLOCKED;
+            process->io_burst = getrand(process->IO);
+            process->event_time = current_time+process->io_burst;
+            event_queue.push(process);
+            if(!my_scheduler->isEmpty()){
+                process = my_scheduler->getEvent();
+                process->previous_state = process->state;
+                process->state = STATE_RUNNING;
+                process->cpu_burst = getrand(process->CB);
+                process->event_time = current_time + process->cpu_burst;
+                event_queue.push(process);
+            }
+        }else if(process->state==STATE_PREMPT){
+            //do something
+        }
+    }
+}
+
+
 

@@ -13,8 +13,10 @@
 using namespace std;
 
 //Method declarations
-void init_random_vals(string);
-void init_simulation(string);
+void initRandomVals(string);
+int getrand(int);
+void initSimulation(string);
 void createProcess(int,int,int,int);
+void runSimulation();
 
 #endif
