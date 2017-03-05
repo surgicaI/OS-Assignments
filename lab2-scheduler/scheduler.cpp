@@ -52,7 +52,7 @@ Implementation of shortest Job first scheduler
 Process* SJF::getEvent(){
     if(!isEmpty()){
         Process *process;
-        process = ready_queue.front();
+        process = ready_queue.top();
         ready_queue.pop();
         return process;
     }

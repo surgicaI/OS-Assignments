@@ -71,5 +71,16 @@ public:
         }
     }
 };
+class ShortestJobFirstComparator{
+public:
+    bool operator() (Process* lhs, Process*rhs) const
+    {
+        if (lhs->time_left == rhs->time_left){
+            return lhs->insert_order > rhs->insert_order;
+        }else{
+            return lhs->time_left > rhs->time_left;
+}
+    }
+};
 #endif
 

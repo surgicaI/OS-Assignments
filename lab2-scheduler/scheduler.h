@@ -20,7 +20,7 @@ public:
 };
 
 /*-------------------------------------------------------
-class for all FCFS scheduler
+class for FCFS scheduler
 ---------------------------------------------------------*/
 class FCFS: public Scheduler{
 private:
@@ -33,7 +33,7 @@ public:
 };
 
 /*-------------------------------------------------------
-class for all LCFS scheduler
+class for LCFS scheduler
 ---------------------------------------------------------*/
 class LCFS: public Scheduler{
 private:
@@ -46,11 +46,11 @@ public:
 };
 
 /*-------------------------------------------------------
-class for all SJF scheduler
+class for SJF scheduler
 ---------------------------------------------------------*/
 class SJF: public Scheduler{
 private:
-    queue<Process*> ready_queue;
+    priority_queue<Process*, vector<Process*>, ShortestJobFirstComparator> ready_queue;
 public:
     Process* getEvent();
     void setEvent(Process* p);
@@ -59,7 +59,7 @@ public:
 };
 
 /*-------------------------------------------------------
-class for all RR scheduler
+class for RR scheduler
 ---------------------------------------------------------*/
 class RR: public Scheduler{
 private:
@@ -74,7 +74,7 @@ public:
 };
 
 /*-------------------------------------------------------
-class for all PRIO scheduler
+class for PRIO scheduler
 ---------------------------------------------------------*/
 class PRIO: public Scheduler{
 private:
