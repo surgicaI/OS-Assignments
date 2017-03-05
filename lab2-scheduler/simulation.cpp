@@ -10,6 +10,7 @@ int* randvals;
 int ofs = 0; //offset for random values 
 int process_id = 0;
 int current_time = 0;
+bool process_running_in_cpu = false;
 
 /*-------------------------------------------------------
 Main function
@@ -132,6 +133,7 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->event_time = arrival_time;
     process->state = STATE_CREATED;
     process->previous_state = "";
+    process->state_start_time = arrival_time;
     event_queue.push(process);
     /*-------------------------------------------------------
     For debugging purposes
@@ -147,30 +149,60 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
 
 void runSimulation(){
     //while event queue is not empty
-    while(!event_queue.empty()){
+    while(!event_queue.empty() || !my_scheduler->isEmpty()){
         Process* process = event_queue.top();
         event_queue.pop();
         current_time = process->event_time;
+        int time_in_previous_state = current_time - process->state_start_time;
         if(process->state==STATE_CREATED || process->state==STATE_BLOCKED){
             process->previous_state = process->state;
             process->state = STATE_READY;
+            process->state_start_time = current_time;
             my_scheduler->setEvent(process);
+            if(verbose_output){
+                cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                cout<<": "<<process->previous_state<<" -> "<<process->state<<endl;
+            }
         }else if(process->state==STATE_RUNNING){
             process->previous_state = process->state;
-            process->state = STATE_BLOCKED;
-            process->io_burst = getrand(process->IO);
-            process->event_time = current_time+process->io_burst;
-            event_queue.push(process);
-            if(!my_scheduler->isEmpty()){
-                process = my_scheduler->getEvent();
-                process->previous_state = process->state;
-                process->state = STATE_RUNNING;
-                process->cpu_burst = getrand(process->CB);
-                process->event_time = current_time + process->cpu_burst;
+            process->time_left = process->time_left - process->cpu_burst;
+            if(process->time_left>0){
+                process->state = STATE_BLOCKED;
+                process->io_burst = getrand(process->IO);
+                process->event_time = current_time+process->io_burst;
+                process->state_start_time = current_time;
                 event_queue.push(process);
+                if(verbose_output){
+                    cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                    cout<<": "<<process->previous_state<<" -> "<<process->state;
+                    cout<<" ib="<<process->io_burst<<" rem="<<process->time_left<<endl;
+                }
+            }else if(verbose_output){
+                cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state<<": Done"<<endl;
             }
+            process_running_in_cpu = false;
         }else if(process->state==STATE_PREMPT){
             //do something
+        }
+        //from STATE_READY to STATE_RUNNING
+        if(!my_scheduler->isEmpty() && !process_running_in_cpu){
+            process = my_scheduler->getEvent();
+            process->previous_state = process->state;
+            process->state = STATE_RUNNING;
+            process->cpu_burst = getrand(process->CB);
+            if(process->time_left<process->cpu_burst){
+                process->cpu_burst = process->time_left;
+            }
+            process->event_time = current_time + process->cpu_burst;
+            time_in_previous_state = current_time - process->state_start_time;
+            process->state_start_time = current_time;
+            event_queue.push(process);
+            process_running_in_cpu=true;
+            if(verbose_output){
+                cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                cout<<": "<<process->previous_state<<" -> "<<process->state;
+                cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->priority-1<<endl;
+            }
         }
     }
 }

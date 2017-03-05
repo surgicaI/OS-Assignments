@@ -11,8 +11,8 @@ static bool verbose_output = false;
 static const bool LOGS_ENABLED = false;
 static const string STATE_CREATED = "CREATED";
 static const string STATE_READY = "READY";
-static const string STATE_RUNNING = "RUNNING";
-static const string STATE_BLOCKED = "BLOCKED";
+static const string STATE_RUNNING = "RUNNG";
+static const string STATE_BLOCKED = "BLOCK";
 static const string STATE_PREMPT = "PREMPT";
 
 /*-------------------------------------------------------
@@ -38,6 +38,7 @@ public:
     int insert_order;
     int quantum;
     int priority;
+    int state_start_time;
 };
 
 class ProcessComparator{
