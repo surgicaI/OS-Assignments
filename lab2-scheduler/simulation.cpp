@@ -5,6 +5,7 @@ Variable declarations
 ---------------------------------------------------------*/
 Scheduler* my_scheduler;
 priority_queue<Process*, vector<Process*>, ProcessComparator> event_queue;
+priority_queue<Process*, vector<Process*>, FinishedProcessesComparator> finished_process_queue;
 int randvals_size = 0;
 int* randvals;
 int ofs = 0; //offset for random values 
@@ -72,6 +73,7 @@ int main(int argc, char* argv[]){
     initRandomVals(argv[optind+1]);
     initSimulation(argv[optind]);
     runSimulation();
+    printStatistics();
     return 0;
 }
 
@@ -128,6 +130,8 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->TC = total_cpu_time;
     process->CB = cpu_burst;
     process->IO = io_burst;
+    process->IT = 0;
+    process->CW = 0;
     process->time_left = total_cpu_time;
     process->priority = getrand(4);
     process->event_time = arrival_time;
@@ -155,6 +159,9 @@ void runSimulation(){
         current_time = process->event_time;
         int time_in_previous_state = current_time - process->state_start_time;
         if(process->state==STATE_CREATED || process->state==STATE_BLOCKED){
+            if(process->state==STATE_BLOCKED){
+                process->IT = process->IT + time_in_previous_state;
+            }
             process->previous_state = process->state;
             process->state = STATE_READY;
             process->state_start_time = current_time;
@@ -177,8 +184,12 @@ void runSimulation(){
                     cout<<": "<<process->previous_state<<" -> "<<process->state;
                     cout<<" ib="<<process->io_burst<<" rem="<<process->time_left<<endl;
                 }
-            }else if(verbose_output){
-                cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state<<": Done"<<endl;
+            }else {
+                process->FT = current_time;
+                process->TT = process->FT - process->AT;
+                finished_process_queue.push(process);
+                if(verbose_output)
+                    cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state<<": Done"<<endl;
             }
             process_running_in_cpu = false;
         }else if(process->state==STATE_PREMPT){
@@ -195,6 +206,7 @@ void runSimulation(){
             }
             process->event_time = current_time + process->cpu_burst;
             time_in_previous_state = current_time - process->state_start_time;
+            process->CW = process->CW + time_in_previous_state;
             process->state_start_time = current_time;
             event_queue.push(process);
             process_running_in_cpu=true;
@@ -206,6 +218,55 @@ void runSimulation(){
         }
     }
 }
+
+void printStatistics(){
+    cout << my_scheduler->getName()<<endl;
+    Process* process;
+    double number_of_process = 0;
+    double cpu_util = 0;
+    double io_util = 0;
+    double avg_turnaround = 0;
+    double avg_waittime = 0.0;
+    double throughput = 0;
+    while(!finished_process_queue.empty()){
+        process = finished_process_queue.top();
+        finished_process_queue.pop();
+        //calculations
+        number_of_process++;
+        cpu_util += process->TC;
+        io_util += process->IT;
+        avg_turnaround += process->TT;
+        avg_waittime += process->CW;
+        //printing
+        cout<<setfill('0') << setw(4) << process->id << ":";
+        cout<<setfill(' ') << setw(5) << process->AT;
+        cout<<setfill(' ') << setw(5) << process->TC;
+        cout<<setfill(' ') << setw(5) << process->CB;
+        cout<<setfill(' ') << setw(5) << process->IO;
+        cout<<setfill(' ') << setw(2) << process->priority;
+        cout<<" |";
+        cout<<setfill(' ') << setw(6) << process->FT;
+        cout<<setfill(' ') << setw(6) << process->TT;
+        cout<<setfill(' ') << setw(6) << process->IT;
+        cout<<setfill(' ') << setw(6) << process->CW;
+        cout<<endl;
+    }
+    cpu_util = (cpu_util / current_time)*100;
+    io_util = (io_util / current_time)*100;
+    avg_turnaround = avg_turnaround/number_of_process;
+    avg_waittime = avg_waittime/number_of_process;
+    throughput = (number_of_process*100)/current_time;
+    printf("SUM: %d %.2lf %.2lf %.2lf %.2lf %.3lf\n",
+           current_time,
+           cpu_util,
+           io_util,
+           avg_turnaround,
+           avg_waittime, 
+           throughput);
+}
+
+
+
 
 
 

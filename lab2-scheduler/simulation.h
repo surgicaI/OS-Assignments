@@ -7,6 +7,7 @@
 #include <fstream>
 #include <queue>
 #include <vector>
+#include <iomanip>
 #include "util.h"
 #include "scheduler.h"
 
@@ -18,5 +19,6 @@ int getrand(int);
 void initSimulation(string);
 void createProcess(int,int,int,int);
 void runSimulation();
+void printStatistics();
 
 #endif

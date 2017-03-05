@@ -42,8 +42,6 @@ public:
 };
 
 class ProcessComparator{
-private:
-    bool reverse;
 public:
     bool operator() (Process* lhs, Process*rhs) const
     {
@@ -52,6 +50,13 @@ public:
         }else{
             return lhs->event_time > rhs->event_time;
         }
+    }
+};
+class FinishedProcessesComparator{
+public:
+    bool operator() (Process* lhs, Process*rhs) const
+    {
+        return lhs->id > rhs->id;
     }
 };
 #endif
