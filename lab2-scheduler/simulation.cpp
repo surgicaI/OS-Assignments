@@ -12,6 +12,7 @@ int* randvals;
 int ofs = 0; //offset for random values 
 int process_id = 0;
 int current_time = 0;
+int insert_order = 0;
 bool process_running_in_cpu = false;
 
 /*-------------------------------------------------------
@@ -104,10 +105,9 @@ void initSimulation(string input_file){
     int total_cpu_time = 0;
     int cpu_burst = 0;
     int io_burst = 0;
-    int insert_order = 0;
     ifstream fin(input_file);
     while((fin >> arrival_time) && (fin >> total_cpu_time) && (fin >> cpu_burst) && (fin >> io_burst)){
-        createProcess(arrival_time,total_cpu_time,cpu_burst,io_burst,insert_order++);
+        createProcess(arrival_time,total_cpu_time,cpu_burst,io_burst);
     }
     /*-------------------------------------------------------
     For debugging purposes
@@ -125,7 +125,7 @@ void initSimulation(string input_file){
     }
 }
 
-void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_burst, int insert_order){
+void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_burst){
     Process * process = new Process();
     process->id = process_id++;
     process->AT = arrival_time;
@@ -140,7 +140,7 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->state = STATE_CREATED;
     process->previous_state = "";
     process->state_start_time = arrival_time;
-    process->insert_order = insert_order;
+    process->insert_order = insert_order++;
     event_queue.push(process);
     /*-------------------------------------------------------
     For debugging purposes
@@ -193,6 +193,7 @@ void runSimulation(){
                 process->io_burst = getrand(process->IO);
                 process->event_time = current_time+process->io_burst;
                 process->state_start_time = current_time;
+                process->insert_order = insert_order++;
                 event_queue.push(process);
                 addIOTime(current_time,current_time+process->io_burst);
                 if(verbose_output){
@@ -233,6 +234,7 @@ void runSimulation(){
             time_in_previous_state = current_time - process->state_start_time;
             process->CW = process->CW + time_in_previous_state;
             process->state_start_time = current_time;
+            process->insert_order = insert_order++;
             event_queue.push(process);
             process_running_in_cpu=true;
             if(verbose_output){

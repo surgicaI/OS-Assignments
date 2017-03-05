@@ -18,7 +18,7 @@ using namespace std;
 void initRandomVals(string);
 int getrand(int);
 void initSimulation(string);
-void createProcess(int,int,int,int,int);
+void createProcess(int,int,int,int);
 void runSimulation();
 void printStatistics();
 void addIOTime(int,int);

@@ -47,10 +47,7 @@ public:
     bool operator() (Process* lhs, Process*rhs) const
     {
         if (lhs->event_time == rhs->event_time){
-            if(lhs->state_start_time == rhs->state_start_time)
-                return lhs->insert_order > rhs->insert_order;
-            else
-                return lhs->state_start_time > rhs->state_start_time;
+            return lhs->insert_order > rhs->insert_order;
         }else{
             return lhs->event_time > rhs->event_time;
         }
