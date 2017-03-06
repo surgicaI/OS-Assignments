@@ -208,21 +208,20 @@ void runSimulation(){
                     process->insert_order = insert_order++;
                     event_queue.push(process);
                     addIOTime(current_time,current_time+process->io_burst);
-                }else{
-                    process->state = STATE_READY;
-                    process->state_start_time = current_time;
-                    my_scheduler->setEvent(process);
-                }
-                if(verbose_output){
-                    if(process->state == STATE_READY){
-                        cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
-                        cout<<": "<<process->previous_state<<" -> "<<process->state;
-                        cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->dynamic_priority<<endl;
-                    }else if(process->state == STATE_BLOCKED){
+                    if(verbose_output){
                         cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                         cout<<": "<<process->previous_state<<" -> "<<process->state;
                         cout<<" ib="<<process->io_burst<<" rem="<<process->time_left<<endl;
                     }
+                }else{
+                    process->state = STATE_READY;
+                    process->state_start_time = current_time;
+                    if(verbose_output){
+                        cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                        cout<<": "<<process->previous_state<<" -> "<<process->state;
+                        cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->dynamic_priority<<endl;
+                    }
+                    my_scheduler->setEvent(process);
                 }
             }else {
                 process->FT = current_time;
