@@ -78,7 +78,9 @@ class for PRIO scheduler
 ---------------------------------------------------------*/
 class PRIO: public Scheduler{
 private:
-    queue<Process*> ready_queue;
+    priority_queue<Process*, vector<Process*>, PriorityComparator> *active_queue;
+    priority_queue<Process*, vector<Process*>, PriorityComparator> *expired_queue;
+    priority_queue<Process*, vector<Process*>, PriorityComparator> *temp;
     int quantum;
 public:
     PRIO(int);

@@ -98,9 +98,7 @@ int getrand(int n){
     if (++ofs >= randvals_size)
         ofs = 0;
     return result;
-}
-
-void initSimulation(string input_file){
+}void initSimulation(string input_file){
     int arrival_time = 0;
     int total_cpu_time = 0;
     int cpu_burst = 0;
@@ -135,7 +133,8 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->IT = 0;
     process->CW = 0;
     process->time_left = total_cpu_time;
-    process->priority = getrand(4);
+    process->static_priority = getrand(4);
+    process->dynamic_priority = process->static_priority;
     process->event_time = arrival_time;
     process->state = STATE_CREATED;
     process->previous_state = "";
@@ -152,7 +151,7 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
         cout<<"total_cpu_time:"<<total_cpu_time<< " ";
         cout<<"cpu_burst:"<<cpu_burst<< " ";
         cout<<"io_burst:"<<io_burst<< " ";
-        cout<<"priority:"<<process->priority<< " "<<endl;
+        cout<<"priority:"<<process->static_priority<< " "<<endl;
     }
 }
 
@@ -170,6 +169,7 @@ void runSimulation(){
             process->previous_state = process->state;
             process->state = STATE_READY;
             process->state_start_time = current_time;
+            process->dynamic_priority = process->static_priority;
             my_scheduler->setEvent(process);
             if(verbose_output){
                 cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
@@ -217,7 +217,7 @@ void runSimulation(){
                     if(process->state == STATE_READY){
                         cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                         cout<<": "<<process->previous_state<<" -> "<<process->state;
-                        cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->priority-1<<endl;
+                        cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->dynamic_priority<<endl;
                     }else if(process->state == STATE_BLOCKED){
                         cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                         cout<<": "<<process->previous_state<<" -> "<<process->state;
@@ -270,7 +270,7 @@ void runSimulation(){
             if(verbose_output){
                 cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                 cout<<": "<<process->previous_state<<" -> "<<process->state;
-                cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->priority-1<<endl;
+                cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->dynamic_priority<<endl;
             }
         }
     }
@@ -299,7 +299,7 @@ void printStatistics(){
         cout<<setfill(' ') << setw(5) << process->TC;
         cout<<setfill(' ') << setw(5) << process->CB;
         cout<<setfill(' ') << setw(5) << process->IO;
-        cout<<setfill(' ') << setw(2) << process->priority;
+        cout<<setfill(' ') << setw(2) << process->static_priority;
         cout<<" |";
         cout<<setfill(' ') << setw(6) << process->FT;
         cout<<setfill(' ') << setw(6) << process->TT;

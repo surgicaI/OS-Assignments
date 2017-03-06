@@ -15,7 +15,8 @@ Process* FCFS::getEvent(){
     return NULL;
 }
 void FCFS::setEvent(Process* p){
-        ready_queue.push(p);
+    p->dynamic_priority = p->static_priority-1;
+    ready_queue.push(p);
 }
 bool FCFS::isEmpty(){
     return ready_queue.empty();
@@ -37,6 +38,7 @@ Process* LCFS::getEvent(){
     return NULL;
 }
 void LCFS::setEvent(Process* p){
+    p->dynamic_priority = p->static_priority-1;
     ready_stack.push(p);
 }
 bool LCFS::isEmpty(){
@@ -59,7 +61,8 @@ Process* SJF::getEvent(){
     return NULL;
 }
 void SJF::setEvent(Process* p){
-        ready_queue.push(p);
+    p->dynamic_priority = p->static_priority-1;
+    ready_queue.push(p);
 }
 bool SJF::isEmpty(){
     return ready_queue.empty();
@@ -84,6 +87,7 @@ Process* RR::getEvent(){
     return NULL;
 }
 void RR::setEvent(Process* p){
+    p->dynamic_priority = p->static_priority-1;
     p->quantum = quantum;
     ready_queue.push(p);
 }
@@ -100,21 +104,35 @@ Implementation of priority based scheduler
 PRIO::PRIO(int n)
 {
     quantum = n;
+    active_queue = new priority_queue<Process*, vector<Process*>, PriorityComparator>();
+    expired_queue = new priority_queue<Process*, vector<Process*>, PriorityComparator>();
 }
 Process* PRIO::getEvent(){
-    if(!isEmpty()){
+    if(active_queue->empty()){
+        temp = active_queue;
+        active_queue = expired_queue;
+        expired_queue = temp;
+    }
+    if(!active_queue->empty()){
         Process *process;
-        process = ready_queue.front();
-        ready_queue.pop();
+        process = active_queue->top();
+        active_queue->pop();
         return process;
     }
     return NULL;
 }
 void PRIO::setEvent(Process* p){
-    ready_queue.push(p);
+    p->quantum = quantum;
+    p->dynamic_priority--;
+    if(p->dynamic_priority<0){
+        p->dynamic_priority = p->static_priority-1;
+        expired_queue->push(p);
+    }else{
+        active_queue->push(p);
+    }
 }
 bool PRIO::isEmpty(){
-    return ready_queue.empty();
+    return active_queue->empty()&&expired_queue->empty();
 }
 string PRIO::getName(){
     return "PRIO " + to_string(quantum);

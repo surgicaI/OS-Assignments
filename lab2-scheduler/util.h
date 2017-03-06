@@ -38,7 +38,8 @@ public:
     int io_burst;
     int insert_order;
     int quantum;
-    int priority;
+    int static_priority;
+    int dynamic_priority;
     int state_start_time;
 };
 
@@ -79,7 +80,18 @@ public:
             return lhs->insert_order > rhs->insert_order;
         }else{
             return lhs->time_left > rhs->time_left;
-}
+        }
+    }
+};
+class PriorityComparator{
+public:
+    bool operator() (Process* lhs, Process*rhs) const
+    {
+        if (lhs->dynamic_priority == rhs->dynamic_priority){
+            return lhs->insert_order > rhs->insert_order;
+        }else{
+            return lhs->dynamic_priority < rhs->dynamic_priority;
+        }
     }
 };
 #endif
