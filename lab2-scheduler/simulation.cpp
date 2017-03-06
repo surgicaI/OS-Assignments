@@ -184,8 +184,11 @@ void runSimulation(){
             ---------------------------------------------------------*/
             if(!event_queue.empty()){
                 process = event_queue.top();
-                if(process->event_time==current_time)
+                if(process->event_time==current_time){
+                    if(LOGS_ENABLED)
+                        cout<<"runSimulation(): two events with same time-stamp"<<endl;
                     continue;
+                }
             }
         }else if(process->state==STATE_RUNNING){
             process->previous_state = process->state;
@@ -194,6 +197,7 @@ void runSimulation(){
                 process->cpu_burst = 0;
             }else{
                 process->time_left = process->time_left - process->quantum;
+                process->cpu_burst -= process->quantum;
             }
             if(process->time_left>0){
                 if(process->quantum==-1 || process->cpu_burst==0){
@@ -210,9 +214,15 @@ void runSimulation(){
                     my_scheduler->setEvent(process);
                 }
                 if(verbose_output){
-                    cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
-                    cout<<": "<<process->previous_state<<" -> "<<process->state;
-                    cout<<" ib="<<process->io_burst<<" rem="<<process->time_left<<endl;
+                    if(process->state == STATE_READY){
+                        cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                        cout<<": "<<process->previous_state<<" -> "<<process->state;
+                        cout<<" cb="<<process->cpu_burst<<" rem="<<process->time_left<<" prio="<<process->priority-1<<endl;
+                    }else if(process->state == STATE_BLOCKED){
+                        cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
+                        cout<<": "<<process->previous_state<<" -> "<<process->state;
+                        cout<<" ib="<<process->io_burst<<" rem="<<process->time_left<<endl;
+                    }
                 }
             }else {
                 process->FT = current_time;
@@ -231,8 +241,6 @@ void runSimulation(){
                 if(process->event_time==current_time)
                     continue;
             }
-        }else if(process->state==STATE_PREMPT){
-            //do something
         }
         //from STATE_READY to STATE_RUNNING
         if(!my_scheduler->isEmpty() && !process_running_in_cpu){
@@ -248,9 +256,6 @@ void runSimulation(){
             if(process->quantum!=-1){
                 if(process->cpu_burst<process->quantum){
                     process->quantum = process->cpu_burst;
-                    process->cpu_burst=0;
-                }else{
-                    process->cpu_burst -= process->quantum;
                 }
                 process->event_time = current_time + process->quantum;
             }else{
