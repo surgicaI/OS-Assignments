@@ -104,6 +104,7 @@ Implementation of priority based scheduler
 PRIO::PRIO(int n)
 {
     quantum = n;
+    insert_order = 0;
     active_queue = new priority_queue<Process*, vector<Process*>, PriorityComparator>();
     expired_queue = new priority_queue<Process*, vector<Process*>, PriorityComparator>();
 }
@@ -124,6 +125,7 @@ Process* PRIO::getEvent(){
 void PRIO::setEvent(Process* p){
     p->quantum = quantum;
     p->dynamic_priority--;
+    p->insert_order = insert_order++;
     if(p->dynamic_priority<0){
         p->dynamic_priority = p->static_priority-1;
         expired_queue->push(p);

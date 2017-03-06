@@ -82,6 +82,7 @@ private:
     priority_queue<Process*, vector<Process*>, PriorityComparator> *expired_queue;
     priority_queue<Process*, vector<Process*>, PriorityComparator> *temp;
     int quantum;
+    int insert_order;
 public:
     PRIO(int);
     Process* getEvent();
