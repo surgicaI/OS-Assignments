@@ -12,7 +12,7 @@ int* randvals;
 int ofs = 0; //offset for random values 
 int process_id = 0;
 int current_time = 0;
-int insert_order = 0;
+long int insert_order = 0;
 bool process_running_in_cpu = false;
 
 /*-------------------------------------------------------

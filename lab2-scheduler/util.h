@@ -36,7 +36,7 @@ public:
     int event_time;
     int cpu_burst;
     int io_burst;
-    int insert_order;
+    long int insert_order;
     int quantum;
     int static_priority;
     int dynamic_priority;
