@@ -141,6 +141,8 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
     process->previous_state = "";
     process->state_start_time = arrival_time;
     process->insert_order = insert_order++;
+    process->cpu_burst=0;
+    process->quantum = -1;
     event_queue.push(process);
     /*-------------------------------------------------------
     For debugging purposes
@@ -187,15 +189,26 @@ void runSimulation(){
             }
         }else if(process->state==STATE_RUNNING){
             process->previous_state = process->state;
-            process->time_left = process->time_left - process->cpu_burst;
+            if(process->quantum==-1){
+                process->time_left = process->time_left - process->cpu_burst;
+                process->cpu_burst = 0;
+            }else{
+                process->time_left = process->time_left - process->quantum;
+            }
             if(process->time_left>0){
-                process->state = STATE_BLOCKED;
-                process->io_burst = getrand(process->IO);
-                process->event_time = current_time+process->io_burst;
-                process->state_start_time = current_time;
-                process->insert_order = insert_order++;
-                event_queue.push(process);
-                addIOTime(current_time,current_time+process->io_burst);
+                if(process->quantum==-1 || process->cpu_burst==0){
+                    process->state = STATE_BLOCKED;
+                    process->io_burst = getrand(process->IO);
+                    process->event_time = current_time+process->io_burst;
+                    process->state_start_time = current_time;
+                    process->insert_order = insert_order++;
+                    event_queue.push(process);
+                    addIOTime(current_time,current_time+process->io_burst);
+                }else{
+                    process->state = STATE_READY;
+                    process->state_start_time = current_time;
+                    my_scheduler->setEvent(process);
+                }
                 if(verbose_output){
                     cout<<current_time<<" "<<process->id<<" "<<time_in_previous_state;
                     cout<<": "<<process->previous_state<<" -> "<<process->state;
@@ -226,11 +239,23 @@ void runSimulation(){
             process = my_scheduler->getEvent();
             process->previous_state = process->state;
             process->state = STATE_RUNNING;
-            process->cpu_burst = getrand(process->CB);
-            if(process->time_left<process->cpu_burst){
-                process->cpu_burst = process->time_left;
+            if(process->cpu_burst==0){
+                process->cpu_burst = getrand(process->CB);
+                if(process->time_left<process->cpu_burst){
+                    process->cpu_burst = process->time_left;
+                }
             }
-            process->event_time = current_time + process->cpu_burst;
+            if(process->quantum!=-1){
+                if(process->cpu_burst<process->quantum){
+                    process->quantum = process->cpu_burst;
+                    process->cpu_burst=0;
+                }else{
+                    process->cpu_burst -= process->quantum;
+                }
+                process->event_time = current_time + process->quantum;
+            }else{
+                process->event_time = current_time + process->cpu_burst;
+            }
             time_in_previous_state = current_time - process->state_start_time;
             process->CW = process->CW + time_in_previous_state;
             process->state_start_time = current_time;

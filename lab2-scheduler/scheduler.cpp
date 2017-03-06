@@ -84,6 +84,7 @@ Process* RR::getEvent(){
     return NULL;
 }
 void RR::setEvent(Process* p){
+    p->quantum = quantum;
     ready_queue.push(p);
 }
 bool RR::isEmpty(){
@@ -118,3 +119,4 @@ bool PRIO::isEmpty(){
 string PRIO::getName(){
     return "PRIO " + to_string(quantum);
 }
+
