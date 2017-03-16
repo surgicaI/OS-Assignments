@@ -43,6 +43,11 @@ public:
     int state_start_time;
 };
 
+/*-------------------------------------------------------
+Class definitions
+While reading file this comparator will be used to enter
+processes in event queue based on arrival time
+---------------------------------------------------------*/
 class ProcessComparator{
 public:
     bool operator() (Process* lhs, Process*rhs) const
@@ -54,6 +59,13 @@ public:
         }
     }
 };
+
+/*-------------------------------------------------------
+Class definitions
+This comparator will be used to hold the processes which 
+have finished and order them based on their arrival times.
+This datastructure used while printing final results.
+---------------------------------------------------------*/
 class FinishedProcessesComparator{
 public:
     bool operator() (Process* lhs, Process*rhs) const
@@ -61,6 +73,12 @@ public:
         return lhs->id > rhs->id;
     }
 };
+
+/*-------------------------------------------------------
+Class definitions
+To calculate Total IO time of the processes we need this 
+comparator
+---------------------------------------------------------*/
 class IOTimePairComparator{
 public:
     bool operator() (pair<int,int> t1,pair<int,int> t2) const
@@ -72,6 +90,14 @@ public:
         }
     }
 };
+
+/*-------------------------------------------------------
+Class definitions
+Shortest job first comparator. This will order the processes
+based on the remaining time of a process. If 2 processes 
+have same remaining time then the process that became ready 
+first will be scheduled first.
+---------------------------------------------------------*/
 class ShortestJobFirstComparator{
 public:
     bool operator() (Process* lhs, Process*rhs) const
@@ -83,6 +109,14 @@ public:
         }
     }
 };
+
+/*-------------------------------------------------------
+Class definitions
+Shortest job first comparator. This will order the processes
+based on the priority of a process. If 2 processes 
+have same priority then the process that became ready 
+first will be scheduled first.
+---------------------------------------------------------*/
 class PriorityComparator{
 public:
     bool operator() (Process* lhs, Process*rhs) const

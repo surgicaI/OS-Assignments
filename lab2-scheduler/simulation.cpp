@@ -81,6 +81,7 @@ int main(int argc, char* argv[]){
 
 /*-------------------------------------------------------
 Method definitions
+To read file with random values and save it to array.
 ---------------------------------------------------------*/
 void initRandomVals(string rand_file_name){
     ifstream fin(rand_file_name);
@@ -93,12 +94,22 @@ void initRandomVals(string rand_file_name){
     }
 }
 
+/*-------------------------------------------------------
+Method definitions
+To get value from random array based on burst.
+---------------------------------------------------------*/
 int getrand(int n){
     int result = 1 + (randvals[ofs] % n);
     if (++ofs >= randvals_size)
         ofs = 0;
     return result;
-}void initSimulation(string input_file){
+}
+
+/*-------------------------------------------------------
+Method definitions
+To init all the data structure before starting simulation.
+---------------------------------------------------------*/
+void initSimulation(string input_file){
     int arrival_time = 0;
     int total_cpu_time = 0;
     int cpu_burst = 0;
@@ -123,6 +134,10 @@ int getrand(int n){
     }
 }
 
+/*-------------------------------------------------------
+Method definitions
+Create processes based on values given in file.
+---------------------------------------------------------*/
 void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_burst){
     Process * process = new Process();
     process->id = process_id++;
@@ -154,7 +169,11 @@ void createProcess(int arrival_time, int total_cpu_time, int cpu_burst, int io_b
         cout<<"priority:"<<process->static_priority<< " "<<endl;
     }
 }
-
+/*-------------------------------------------------------
+Method definitions
+This method will run the simulation based on all the rules
+and manage the states of the processes.
+---------------------------------------------------------*/
 void runSimulation(){
     //while event queue is not empty
     while(!event_queue.empty() || !my_scheduler->isEmpty()){
@@ -275,6 +294,11 @@ void runSimulation(){
     }
 }
 
+/*-------------------------------------------------------
+Method definitions
+Once the simulation is complete this method will 
+print the results.
+---------------------------------------------------------*/
 void printStatistics(){
     cout << my_scheduler->getName()<<endl;
     Process* process;
@@ -319,12 +343,24 @@ void printStatistics(){
            avg_waittime, 
            throughput);
 }
-
+/*-------------------------------------------------------
+Method definitions
+Because the processes can be in IO state simulataneously
+these 2 methods below will be used to calculate total IO time of the 
+processes because its not straight forward.
+(ie we cannot sum IO times of all processes)
+---------------------------------------------------------*/
 void addIOTime(int start_time,int end_time){
     pair<int,int> io_time = make_pair(start_time,end_time);
     io_util_queue.push(io_time);
 }
-
+/*-------------------------------------------------------
+Method definitions
+Because the processes can be in IO state simulataneously
+this method below will be used to calculate total IO time of the 
+processes because its not straight forward.
+(ie we cannot sum IO times of all processes)
+---------------------------------------------------------*/
 int calcIOUtil(){
     int result = 0;
     while(!io_util_queue.empty()){
