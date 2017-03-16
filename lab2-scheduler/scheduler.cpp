@@ -62,6 +62,7 @@ Process* SJF::getEvent(){
 }
 void SJF::setEvent(Process* p){
     p->dynamic_priority = p->static_priority-1;
+    p->insert_order = insert_order++;
     ready_queue.push(p);
 }
 bool SJF::isEmpty(){

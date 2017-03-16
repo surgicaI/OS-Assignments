@@ -51,6 +51,7 @@ class for SJF scheduler
 class SJF: public Scheduler{
 private:
     priority_queue<Process*, vector<Process*>, ShortestJobFirstComparator> ready_queue;
+    long int insert_order=0;
 public:
     Process* getEvent();
     void setEvent(Process* p);
