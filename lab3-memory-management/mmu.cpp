@@ -44,19 +44,18 @@ public:
 
 class FIFO: public Algorithm{
 private:
-    queue<int> *myqueue;
+    queue<int> myqueue;
 public:
     FIFO(){
-        myqueue = new queue<int>();
         for(int i=0;i<num_frames;i++){
-            myqueue->push(i);
+            myqueue.push(i);
         }
     }
     int getFrame(){
-        int frame = myqueue->front();
-        if(!myqueue->empty())
-            myqueue->pop();
-        myqueue->push(frame);
+        int frame = myqueue.front();
+        if(!myqueue.empty())
+            myqueue.pop();
+        myqueue.push(frame);
         return frame;
     }
     void update(int frame){
@@ -175,6 +174,7 @@ void initSimulation(string input_file, string random_file){
                     if(old_pte->modified==1){
                         cout<< instruction_counter << ": OUT    "<< frame_table[frame] << "   " << frame <<endl;
                         old_pte->pagedout = 1;
+                        old_pte->modified = 0;
                     }
                 }
                 if(pte->pagedout==1){
