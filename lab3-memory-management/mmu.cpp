@@ -2,7 +2,8 @@
 #include <unistd.h>
 #include <fstream>
 #include <sstream>
-#include <queue> 
+#include <queue>
+#include <vector>
 
 using namespace std;
 
@@ -13,10 +14,25 @@ const bool LOGS_ENABLED = false;
 
 const int READ = 0;
 const int WRITE = 1;
+const int NUM_CLASSES = 4;
+const int PAGE_TABLE_SIZE = 64;
 int num_frames = -1;
 long long int instruction_counter = 0;
 int *frame_table;
 bool option_O = false;
+int randvals_size;
+int *randvals;
+int ofs = 0;
+int page_replacement_request_id = 0;
+
+/*-------------------------------------------------------
+Method declarations
+---------------------------------------------------------*/
+void initSimulation(string,string);
+void initAlgorithm(string,string);
+void parseOptions(string);
+void initRandomVals(string);
+int getrand(int);
 
 /*-------------------------------------------------------
 Class definitions
@@ -34,7 +50,7 @@ public:
         referenced = 0;
         pagedout = 0;
     }
-};
+} page_table[PAGE_TABLE_SIZE];
 
 class Algorithm{
 public:
@@ -61,21 +77,67 @@ public:
     void update(int frame){
         //do nothing
     }
-private:
-    int entries;
 };
 
-/*-------------------------------------------------------
-Method declarations
----------------------------------------------------------*/
-void initSimulation(string,string);
-void initAlgorithm(string);
-void parseOptions(string);
+class NRU: public Algorithm{
+private:
+    vector<int> my_classes[NUM_CLASSES];
+    bool empty_frames_available;
+public:
+    NRU(){
+        empty_frames_available = true;
+    }
+    int getFrame(){
+        PageTableEntry *pte;
+        int page_index = 0;
+        int class_num = -1;
+        for(int i=0;i<NUM_CLASSES;i++){
+            my_classes[i].clear();
+        }
+        for(int frame=0;frame<num_frames;frame++){
+            page_index = frame_table[frame];
+            if(page_index==-1){
+                //if frame is empty then return this frame;
+                return frame;
+            }
+            pte = &page_table[page_index];
+            if(pte->referenced==0){
+                //when page reference bit is not set
+                if(pte->modified==0){
+                    //when page modified bit is not set
+                    class_num = 0;
+                }else{
+                    //when page modified bit is set
+                    class_num = 1;
+                }
+            }else{
+                //when page reference bit is set
+                if(pte->modified==0){
+                    //when page modified bit is not set
+                    class_num = 2;
+                }else{
+                    //when page modified bit is set
+                    class_num = 3;
+                }
+            }
+            my_classes[class_num].push_back(frame);
+        }
+        for(int i=0;i<NUM_CLASSES;i++){
+            if(my_classes[i].size()==0)
+                continue;
+            int index = getrand(my_classes[i].size());
+            return my_classes[i][index];
+        }
+        return -1;
+    }
+    void update(int frame){
+        //do nothing
+    }
+};
 
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
-PageTableEntry page_table[64];
 Algorithm *my_algorithm;
 
 /*-------------------------------------------------------
@@ -131,7 +193,7 @@ int main(int argc, char* argv[]){
     for(int i=0;i<num_frames;i++){
         frame_table[i] = -1;
     }
-    initAlgorithm(algo);
+    initAlgorithm(algo, random_file);
     parseOptions(options);
     initSimulation(input_file,random_file);
 
@@ -198,9 +260,12 @@ void initSimulation(string input_file, string random_file){
     }
 }
 
-void initAlgorithm(string algo){
+void initAlgorithm(string algo, string random_file){
     if(algo=="f"){
         my_algorithm = new FIFO();
+    }else if(algo=="N"){
+        my_algorithm = new NRU();
+        initRandomVals(random_file);
     }
 }
 
@@ -208,4 +273,22 @@ void parseOptions(string options){
     size_t found = options.find_first_of("O");
     if (found!=string::npos)
         option_O = true;
+}
+
+void initRandomVals(string random_file){
+    ifstream fin(random_file);
+    fin  >> randvals_size;
+    randvals = new int[randvals_size];
+    int index = 0, num = 0;
+    while(fin>>num){
+        randvals[index] = num;
+        index++;
+    }
+}
+
+int getrand(int n){
+    int result = randvals[ofs] % n;
+    if (++ofs >= randvals_size)
+        ofs = 0;
+    return result;
 }
