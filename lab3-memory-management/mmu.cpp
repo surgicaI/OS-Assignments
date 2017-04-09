@@ -16,6 +16,8 @@ const int READ = 0;
 const int WRITE = 1;
 const int NUM_CLASSES = 4;
 const int PAGE_TABLE_SIZE = 64;
+const int PHYSICAL_FRAME_CLOCK = 0;
+const int VIRTUAL_PAGE_CLOCK = 1;
 int num_frames = -1;
 long long int instruction_counter = 0;
 int *frame_table;
@@ -184,6 +186,63 @@ public:
     }
 };
 
+class Clock: public Algorithm{
+private:
+    bool empty_frames_available;
+    int clockhand;
+    int clock_type;
+public:
+    Clock(int type){
+        empty_frames_available = true;
+        clock_type = type;
+    }
+    int getFrame(){
+        if(empty_frames_available){
+            for(int frame=0;frame<num_frames;frame++){
+                if(frame_table[frame]==-1)
+                    return frame;
+            }
+            empty_frames_available = false;
+            if(clock_type==PHYSICAL_FRAME_CLOCK){
+                clockhand = 0;
+            }else if(clock_type==VIRTUAL_PAGE_CLOCK){
+                clockhand = frame_table[0];
+            }
+        }
+        if(clock_type==PHYSICAL_FRAME_CLOCK){
+            int page_index;
+            PageTableEntry *pte;
+            while(true){
+                int frame = clockhand;
+                page_index = frame_table[frame];
+                pte = &page_table[page_index];
+                clockhand = (clockhand+1)%num_frames;
+                if(pte->referenced==1){
+                    pte->referenced = 0;
+                }else{
+                    return frame;
+                }
+            }
+        }else if(clock_type==VIRTUAL_PAGE_CLOCK){
+            int page_index;
+            PageTableEntry *pte;
+            while(true){
+                pte = &page_table[clockhand];
+                clockhand = (clockhand+1) % PAGE_TABLE_SIZE;
+                if(pte->present==1 && pte->referenced==1){
+                    pte->referenced = 0;
+                }else if(pte->present==1 && pte->referenced==0){
+                    return pte->frameidx;
+                }
+            }
+        }
+        return -1;
+    }
+    void update(int frame){
+        //do nothing
+    }
+};
+
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
@@ -320,6 +379,10 @@ void initAlgorithm(string algo, string random_file){
         initRandomVals(random_file);
     }else if(algo=="s"){
         my_algorithm = new SecondChance();
+    }else if(algo=="c"){
+        my_algorithm = new Clock(PHYSICAL_FRAME_CLOCK);
+    }else if(algo=="X"){
+        my_algorithm = new Clock(VIRTUAL_PAGE_CLOCK);
     }
 }
 
