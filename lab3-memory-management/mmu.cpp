@@ -85,25 +85,28 @@ class NRU: public Algorithm{
 private:
     vector<int> my_classes[NUM_CLASSES];
     bool empty_frames_available;
+    int page_fault_counter ;
 public:
     NRU(){
+        page_fault_counter = 0;
         empty_frames_available = true;
     }
     int getFrame(){
+        if(empty_frames_available){
+            for(int frame=0;frame<num_frames;frame++){
+                if(frame_table[frame]==-1)
+                    return frame;
+            }
+            empty_frames_available = false;
+        }
         PageTableEntry *pte;
-        int page_index = 0;
-        int class_num = -1;
         for(int i=0;i<NUM_CLASSES;i++){
             my_classes[i].clear();
         }
-        for(int frame=0;frame<num_frames;frame++){
-            page_index = frame_table[frame];
-            if(page_index==-1){
-                //if frame is empty then return this frame;
-                return frame;
-            }
+        for(int page_index=0; page_index<PAGE_TABLE_SIZE; page_index++){
+            int class_num = -1;
             pte = &page_table[page_index];
-            if(pte->referenced==0){
+            if(pte->present==1 && pte->referenced==0){
                 //when page reference bit is not set
                 if(pte->modified==0){
                     //when page modified bit is not set
@@ -112,7 +115,7 @@ public:
                     //when page modified bit is set
                     class_num = 1;
                 }
-            }else{
+            }else if(pte->present==1 && pte->referenced==1){
                 //when page reference bit is set
                 if(pte->modified==0){
                     //when page modified bit is not set
@@ -122,13 +125,30 @@ public:
                     class_num = 3;
                 }
             }
-            my_classes[class_num].push_back(frame);
+            if(class_num!=-1)
+                my_classes[class_num].push_back(page_index);
         }
         for(int i=0;i<NUM_CLASSES;i++){
             if(my_classes[i].size()==0)
                 continue;
             int index = getrand(my_classes[i].size());
-            return my_classes[i][index];
+            int page_index = my_classes[i][index];
+            /*-------------------------------------------------------
+            NRU requires that the REFERENCED-bit be periodically 
+            reset for all valid page table entries. The book suggest
+            on every clock cycle. Since we don’t implement a clock
+            interrupt, we shall reset the ref bits every 10th page
+            replacement request before you implement the replacement 
+            operation (these don’t include the initial page fault). 
+            ---------------------------------------------------------*/
+            page_fault_counter++;
+            if(page_fault_counter%10==0){
+                page_fault_counter=0;
+                for(int page_index=0;page_index<PAGE_TABLE_SIZE;page_index++){
+                    page_table[page_index].referenced=0;
+                }
+            }
+            return page_table[page_index].frameidx;
         }
         return -1;
     }
