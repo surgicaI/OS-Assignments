@@ -23,7 +23,7 @@ const int MAP_UNMAP_COST = 400;
 const int PAGEIN_PAGEOUT_COST = 3000;
 const int ZERO_COST = 150;
 const int READ_WRITE_COST = 1;
-int num_frames = -1;
+int num_frames = 32;
 long long int instruction_counter = 0;
 int *frame_table;
 bool option_O = false;
