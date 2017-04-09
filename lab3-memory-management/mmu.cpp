@@ -69,7 +69,6 @@ public:
 class Algorithm{
 public:
     virtual int getFrame() = 0;
-    virtual void update(int frame) = 0;
 };
 
 class FIFO: public Algorithm{
@@ -87,9 +86,6 @@ public:
             myqueue.pop();
         myqueue.push(frame);
         return frame;
-    }
-    void update(int frame){
-        //do nothing
     }
 };
 
@@ -164,9 +160,6 @@ public:
         }
         return -1;
     }
-    void update(int frame){
-        //do nothing
-    }
 };
 
 class Random: public Algorithm{
@@ -185,9 +178,6 @@ public:
             empty_frames_available = false;
         }
         return getrand(num_frames);
-    }
-    void update(int frame){
-        //do nothing
     }
 };
 
@@ -212,9 +202,6 @@ public:
             else
                 return frame;
         }
-    }
-    void update(int frame){
-        //do nothing
     }
 };
 
@@ -252,7 +239,6 @@ public:
                 }
             }
         }else if(clock_type==VIRTUAL_PAGE_BASED_ALGO){
-            int page_index;
             PageTableEntry *pte;
             while(true){
                 pte = &page_table[clockhand];
@@ -265,9 +251,6 @@ public:
             }
         }
         return -1;
-    }
-    void update(int frame){
-        //do nothing
     }
 };
 
@@ -359,9 +342,6 @@ public:
     ~Aging(){
         delete aging_list;
     }
-    void update(int frame){
-        //do nothing
-    }
 };
 
 class Statistics{
@@ -392,7 +372,6 @@ Main function
 int main(int argc, char* argv[]){
     //Reading input from console and initializing
     int c;
-    char *s_value = NULL;
     string input_file = "";
     string random_file = "";
     string algo = "";
@@ -516,8 +495,6 @@ void initSimulation(string input_file, string random_file){
             pte->present = 1;
             pte->frameidx = frame;
             frame_table[frame] = virtual_page_index;
-        }else{
-            my_algorithm->update(pte->frameidx);
         }
         if(read_or_write==WRITE)
             pte->modified = 1;
