@@ -303,7 +303,7 @@ public:
                     pte = &page_table[frame_table[frame]];
                     aging_list[frame] = aging_list[frame]>>1;
                     if(pte->referenced==1){
-                        aging_list[frame] = aging_list[frame] & SIGNIFICANT_BIT_ONE;
+                        aging_list[frame] = aging_list[frame] | SIGNIFICANT_BIT_ONE;
                     }
                     pte->referenced = 0;
                 }
