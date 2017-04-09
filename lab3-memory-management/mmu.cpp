@@ -157,6 +157,33 @@ public:
     }
 };
 
+class SecondChance: public Algorithm{
+private:
+    queue<int> myqueue;
+public:
+    SecondChance(){
+        for(int i=0;i<num_frames;i++){
+            myqueue.push(i);
+        }
+    }
+    int getFrame(){
+        while(true){
+            int frame = myqueue.front();
+            if(!myqueue.empty())
+                myqueue.pop();
+            myqueue.push(frame);
+            PageTableEntry *pte = &page_table[frame_table[frame]];
+            if(pte->referenced==1)
+                pte->referenced=0;
+            else
+                return frame;
+        }
+    }
+    void update(int frame){
+        //do nothing
+    }
+};
+
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
@@ -291,6 +318,8 @@ void initAlgorithm(string algo, string random_file){
     }else if(algo=="r"){
         my_algorithm = new Random();
         initRandomVals(random_file);
+    }else if(algo=="s"){
+        my_algorithm = new SecondChance();
     }
 }
 
