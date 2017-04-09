@@ -475,49 +475,53 @@ void initSimulation(string input_file, string random_file){
         stream >> virtual_page_index;
         
         //cout << read_or_write << " " << virtual_page_index <<endl;
-        if(option_O){
+        if(option_O)
             cout<< "==> inst: "<< read_or_write << " " << virtual_page_index <<endl;
-            totalcost = totalcost + READ_WRITE_COST;
-            pte = &page_table[virtual_page_index];
-            if(pte->present!=1){
-                int frame = my_algorithm->getFrame();
-                //frame is not empty
-                if(frame_table[frame]!=-1){
+        totalcost = totalcost + READ_WRITE_COST;
+        pte = &page_table[virtual_page_index];
+        if(pte->present!=1){
+            int frame = my_algorithm->getFrame();
+            //frame is not empty
+            if(frame_table[frame]!=-1){
+                if(option_O)
                     cout<< instruction_counter << ": UNMAP   "<< frame_table[frame] << "   " << frame <<endl;
-                    stats.unmaps++;
-                    totalcost = totalcost + MAP_UNMAP_COST;
-                    PageTableEntry *old_pte = &page_table[frame_table[frame]];
-                    old_pte->present = 0;
-                    if(old_pte->modified==1){
-                        cout<< instruction_counter << ": OUT    "<< frame_table[frame] << "   " << frame <<endl;
-                        stats.outs++;
-                        totalcost = totalcost + PAGEIN_PAGEOUT_COST;
-                        old_pte->pagedout = 1;
-                        old_pte->modified = 0;
-                    }
-                }
-                if(pte->pagedout==1){
-                    cout<< instruction_counter << ": IN     "<< virtual_page_index << "   " << frame <<endl;
-                    stats.ins++;
-                    totalcost = totalcost + PAGEIN_PAGEOUT_COST;
-                }else{
-                    cout<< instruction_counter << ": ZERO        "<< frame <<endl;
-                    stats.zeros++;
-                    totalcost = totalcost + ZERO_COST;
-                }
-                cout<< instruction_counter << ": MAP     "<< virtual_page_index << "   " << frame <<endl;
-                stats.maps++;
+                stats.unmaps++;
                 totalcost = totalcost + MAP_UNMAP_COST;
-                pte->present = 1;
-                pte->frameidx = frame;
-                frame_table[frame] = virtual_page_index;
-            }else{
-                my_algorithm->update(pte->frameidx);
+                PageTableEntry *old_pte = &page_table[frame_table[frame]];
+                old_pte->present = 0;
+                if(old_pte->modified==1){
+                    if(option_O)
+                        cout<< instruction_counter << ": OUT    "<< frame_table[frame] << "   " << frame <<endl;
+                    stats.outs++;
+                    totalcost = totalcost + PAGEIN_PAGEOUT_COST;
+                    old_pte->pagedout = 1;
+                    old_pte->modified = 0;
+                }
             }
-            if(read_or_write==WRITE)
-                pte->modified = 1;
-            pte->referenced = 1;
+            if(pte->pagedout==1){
+                if(option_O)
+                    cout<< instruction_counter << ": IN     "<< virtual_page_index << "   " << frame <<endl;
+                stats.ins++;
+                totalcost = totalcost + PAGEIN_PAGEOUT_COST;
+            }else{
+                if(option_O)
+                    cout<< instruction_counter << ": ZERO        "<< frame <<endl;
+                stats.zeros++;
+                totalcost = totalcost + ZERO_COST;
+            }
+            if(option_O)
+                cout<< instruction_counter << ": MAP     "<< virtual_page_index << "   " << frame <<endl;
+            stats.maps++;
+            totalcost = totalcost + MAP_UNMAP_COST;
+            pte->present = 1;
+            pte->frameidx = frame;
+            frame_table[frame] = virtual_page_index;
+        }else{
+            my_algorithm->update(pte->frameidx);
         }
+        if(read_or_write==WRITE)
+            pte->modified = 1;
+        pte->referenced = 1;
 
         instruction_counter++;
     }
