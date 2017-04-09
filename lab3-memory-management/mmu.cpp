@@ -296,9 +296,9 @@ public:
             }
             empty_frames_available = false;
         }
+        PageTableEntry *pte;
         switch(aging_type){
             case PHYSICAL_FRAME_BASED_ALGO:{
-                PageTableEntry *pte;
                 for(int frame=0;frame<num_frames;frame++){
                     pte = &page_table[frame_table[frame]];
                     aging_list[frame] = aging_list[frame]>>1;
@@ -317,10 +317,26 @@ public:
                 }
                 aging_list[min_frame]=0;
                 return min_frame;
-                break;
             }
             case VIRTUAL_PAGE_BASED_ALGO:{
-                break;
+                for(int page_index=0;page_index<PAGE_TABLE_SIZE;page_index++){
+                    pte = &page_table[page_index];
+                    aging_list[page_index] = aging_list[page_index]>>1;
+                    if(pte->present==1 && pte->referenced==1){
+                        aging_list[page_index] = aging_list[page_index] | SIGNIFICANT_BIT_ONE;
+                    }
+                    pte->referenced = 0;
+                }
+                uint32_t min_count = UINT32_MAX;
+                int min_page = 0;
+                for(int index=0;index<PAGE_TABLE_SIZE;index++){
+                    if(page_table[index].present==1 && aging_list[index]<min_count){
+                        min_count = aging_list[index];
+                        min_page = index;
+                    }
+                }
+                aging_list[min_page]=0;
+                return page_table[min_page].frameidx;
             }
             default:{
                 //do nothing
