@@ -19,14 +19,22 @@ const int NUM_CLASSES = 4;
 const int PAGE_TABLE_SIZE = 64;
 const int PHYSICAL_FRAME_BASED_ALGO = 0;
 const int VIRTUAL_PAGE_BASED_ALGO = 1;
+const int MAP_UNMAP_COST = 400;
+const int PAGEIN_PAGEOUT_COST = 3000;
+const int ZERO_COST = 150;
+const int READ_WRITE_COST = 1;
 int num_frames = -1;
 long long int instruction_counter = 0;
 int *frame_table;
 bool option_O = false;
+bool option_P = false;
+bool option_F = false;
+bool option_S = false;
 int randvals_size;
 int *randvals;
 int ofs = 0;
 int page_replacement_request_id = 0;
+uint64_t totalcost = 0;
 
 /*-------------------------------------------------------
 Method declarations
@@ -36,6 +44,9 @@ void initAlgorithm(string,string);
 void parseOptions(string);
 void initRandomVals(string);
 int getrand(int);
+void printPageTable();
+void printFrameTable();
+void printSummary();
 
 /*-------------------------------------------------------
 Class definitions
@@ -353,10 +364,27 @@ public:
     }
 };
 
+class Statistics{
+public:
+    uint64_t unmaps;
+    uint64_t maps;
+    uint64_t ins;
+    uint64_t outs;
+    uint64_t zeros;
+    Statistics(){
+        unmaps = 0;
+        maps = 0;
+        ins = 0;
+        outs = 0;
+        zeros = 0;
+    }
+};
+
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
 Algorithm *my_algorithm;
+Statistics stats;
 
 /*-------------------------------------------------------
 Main function
@@ -414,6 +442,12 @@ int main(int argc, char* argv[]){
     initAlgorithm(algo, random_file);
     parseOptions(options);
     initSimulation(input_file,random_file);
+    if(option_P)
+        printPageTable();
+    if(option_F)
+        printFrameTable();
+    if(option_S)
+        printSummary();
 
     return 0;
 }
@@ -443,26 +477,37 @@ void initSimulation(string input_file, string random_file){
         //cout << read_or_write << " " << virtual_page_index <<endl;
         if(option_O){
             cout<< "==> inst: "<< read_or_write << " " << virtual_page_index <<endl;
+            totalcost = totalcost + READ_WRITE_COST;
             pte = &page_table[virtual_page_index];
             if(pte->present!=1){
                 int frame = my_algorithm->getFrame();
                 //frame is not empty
                 if(frame_table[frame]!=-1){
                     cout<< instruction_counter << ": UNMAP   "<< frame_table[frame] << "   " << frame <<endl;
+                    stats.unmaps++;
+                    totalcost = totalcost + MAP_UNMAP_COST;
                     PageTableEntry *old_pte = &page_table[frame_table[frame]];
                     old_pte->present = 0;
                     if(old_pte->modified==1){
                         cout<< instruction_counter << ": OUT    "<< frame_table[frame] << "   " << frame <<endl;
+                        stats.outs++;
+                        totalcost = totalcost + PAGEIN_PAGEOUT_COST;
                         old_pte->pagedout = 1;
                         old_pte->modified = 0;
                     }
                 }
                 if(pte->pagedout==1){
                     cout<< instruction_counter << ": IN     "<< virtual_page_index << "   " << frame <<endl;
+                    stats.ins++;
+                    totalcost = totalcost + PAGEIN_PAGEOUT_COST;
                 }else{
                     cout<< instruction_counter << ": ZERO        "<< frame <<endl;
+                    stats.zeros++;
+                    totalcost = totalcost + ZERO_COST;
                 }
                 cout<< instruction_counter << ": MAP     "<< virtual_page_index << "   " << frame <<endl;
+                stats.maps++;
+                totalcost = totalcost + MAP_UNMAP_COST;
                 pte->present = 1;
                 pte->frameidx = frame;
                 frame_table[frame] = virtual_page_index;
@@ -504,6 +549,15 @@ void parseOptions(string options){
     size_t found = options.find_first_of("O");
     if (found!=string::npos)
         option_O = true;
+    found = options.find_first_of("P");
+    if (found!=string::npos)
+        option_P = true;
+    found = options.find_first_of("F");
+    if (found!=string::npos)
+        option_F = true;
+    found = options.find_first_of("S");
+    if (found!=string::npos)
+        option_S = true;
 }
 
 void initRandomVals(string random_file){
@@ -523,4 +577,50 @@ int getrand(int n){
     if (++ofs >= randvals_size)
         ofs = 0;
     return result;
+}
+
+void printPageTable(){
+    for (int i = 0; i < PAGE_TABLE_SIZE; i++){
+            if (page_table[i].present == 1){
+                cout << i << ":";
+                if (page_table[i].referenced == 1){
+                    cout << "R";
+                }else{
+                    cout << "-";
+                }
+                if (page_table[i].modified == 1){
+                    cout << "M";
+                }else{
+                    cout << "-";
+                }
+                if (page_table[i].pagedout == 1){
+                    cout << "S ";
+                }else{
+                    cout << "- ";
+                }
+            }else{
+                if (page_table[i].pagedout == 1){
+                    cout << "# ";
+                }else{
+                    cout << "* ";
+                }
+            }
+        }
+cout << endl;
+}
+
+void printFrameTable(){
+    for(int frame=0;frame<num_frames;frame++){
+        if(frame_table[frame]==-1)
+            cout << "* ";
+        else
+            cout << frame_table[frame] << " ";
+    }
+    cout<<endl;
+}
+
+void printSummary(){
+    printf("SUM %llu U=%llu M=%llu I=%llu O=%llu Z=%llu ===> %llu\n", 
+       instruction_counter, stats.unmaps, stats.maps, stats.ins, 
+       stats.outs, stats.zeros, totalcost); 
 }
