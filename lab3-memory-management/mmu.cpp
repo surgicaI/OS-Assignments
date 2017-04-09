@@ -135,6 +135,28 @@ public:
     }
 };
 
+class Random: public Algorithm{
+private:
+    bool empty_frames_available;
+public:
+    Random(){
+        empty_frames_available = true;
+    }
+    int getFrame(){
+        if(empty_frames_available){
+            for(int frame=0;frame<num_frames;frame++){
+                if(frame_table[frame]==-1)
+                    return frame;
+            }
+            empty_frames_available = false;
+        }
+        return getrand(num_frames);
+    }
+    void update(int frame){
+        //do nothing
+    }
+};
+
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
@@ -266,6 +288,9 @@ void initAlgorithm(string algo, string random_file){
     }else if(algo=="N"){
         my_algorithm = new NRU();
         initRandomVals(random_file);
+    }else if(algo=="r"){
+        my_algorithm = new Random();
+        initRandomVals(random_file);
     }
 }
 
@@ -280,7 +305,8 @@ void initRandomVals(string random_file){
     fin  >> randvals_size;
     randvals = new int[randvals_size];
     int index = 0, num = 0;
-    while(fin>>num){
+    while(index<randvals_size){
+        fin>>num;
         randvals[index] = num;
         index++;
     }
