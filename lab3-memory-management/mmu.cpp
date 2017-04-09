@@ -4,6 +4,7 @@
 #include <sstream>
 #include <queue>
 #include <vector>
+#include <stdint.h>
 
 using namespace std;
 
@@ -16,8 +17,8 @@ const int READ = 0;
 const int WRITE = 1;
 const int NUM_CLASSES = 4;
 const int PAGE_TABLE_SIZE = 64;
-const int PHYSICAL_FRAME_CLOCK = 0;
-const int VIRTUAL_PAGE_CLOCK = 1;
+const int PHYSICAL_FRAME_BASED_ALGO = 0;
+const int VIRTUAL_PAGE_BASED_ALGO = 1;
 int num_frames = -1;
 long long int instruction_counter = 0;
 int *frame_table;
@@ -225,7 +226,7 @@ public:
             empty_frames_available = false;
             clockhand = 0;
         }
-        if(clock_type==PHYSICAL_FRAME_CLOCK){
+        if(clock_type==PHYSICAL_FRAME_BASED_ALGO){
             int page_index;
             PageTableEntry *pte;
             while(true){
@@ -239,7 +240,7 @@ public:
                     return frame;
                 }
             }
-        }else if(clock_type==VIRTUAL_PAGE_CLOCK){
+        }else if(clock_type==VIRTUAL_PAGE_BASED_ALGO){
             int page_index;
             PageTableEntry *pte;
             while(true){
@@ -253,6 +254,83 @@ public:
             }
         }
         return -1;
+    }
+    void update(int frame){
+        //do nothing
+    }
+};
+
+class Aging: public Algorithm{
+private:
+    int aging_type;
+    uint32_t *aging_list;
+    bool empty_frames_available;
+    uint32_t SIGNIFICANT_BIT_ONE;
+
+public:
+    Aging(int type){
+        aging_type = type;
+        empty_frames_available = true;
+        SIGNIFICANT_BIT_ONE = 1<<31;
+        switch(aging_type){
+            case PHYSICAL_FRAME_BASED_ALGO:
+                aging_list = new uint32_t[num_frames];
+                for(int i=0;i<num_frames;i++)
+                    aging_list[i]=0;
+                break;
+            case VIRTUAL_PAGE_BASED_ALGO:
+                aging_list = new uint32_t[PAGE_TABLE_SIZE];
+                for(int i=0;i<PAGE_TABLE_SIZE;i++)
+                    aging_list[i]=0;
+                break;
+            default:
+                //do nothing
+                break;
+        }
+    }
+    int getFrame(){
+        if(empty_frames_available){
+            for(int frame=0;frame<num_frames;frame++){
+                if(frame_table[frame]==-1)
+                    return frame;
+            }
+            empty_frames_available = false;
+        }
+        switch(aging_type){
+            case PHYSICAL_FRAME_BASED_ALGO:{
+                PageTableEntry *pte;
+                for(int frame=0;frame<num_frames;frame++){
+                    pte = &page_table[frame_table[frame]];
+                    aging_list[frame] = aging_list[frame]>>1;
+                    if(pte->referenced==1){
+                        aging_list[frame] = aging_list[frame] & SIGNIFICANT_BIT_ONE;
+                    }
+                    pte->referenced = 0;
+                }
+                uint32_t min_count = UINT32_MAX;
+                int min_frame = 0;
+                for(int index=0;index<num_frames;index++){
+                    if(aging_list[index]<min_count){
+                        min_count = aging_list[index];
+                        min_frame = index;
+                    }
+                }
+                aging_list[min_frame]=0;
+                return min_frame;
+                break;
+            }
+            case VIRTUAL_PAGE_BASED_ALGO:{
+                break;
+            }
+            default:{
+                //do nothing
+                break;
+            }
+        }
+        return -1;
+    }
+    ~Aging(){
+        delete aging_list;
     }
     void update(int frame){
         //do nothing
@@ -396,9 +474,13 @@ void initAlgorithm(string algo, string random_file){
     }else if(algo=="s"){
         my_algorithm = new SecondChance();
     }else if(algo=="c"){
-        my_algorithm = new Clock(PHYSICAL_FRAME_CLOCK);
+        my_algorithm = new Clock(PHYSICAL_FRAME_BASED_ALGO);
     }else if(algo=="X"){
-        my_algorithm = new Clock(VIRTUAL_PAGE_CLOCK);
+        my_algorithm = new Clock(VIRTUAL_PAGE_BASED_ALGO);
+    }else if(algo=="a"){
+        my_algorithm = new Aging(PHYSICAL_FRAME_BASED_ALGO);
+    }else if(algo=="Y"){
+        my_algorithm = new Aging(VIRTUAL_PAGE_BASED_ALGO);
     }
 }
 
