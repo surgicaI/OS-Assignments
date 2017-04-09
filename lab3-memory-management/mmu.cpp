@@ -203,11 +203,7 @@ public:
                     return frame;
             }
             empty_frames_available = false;
-            if(clock_type==PHYSICAL_FRAME_CLOCK){
-                clockhand = 0;
-            }else if(clock_type==VIRTUAL_PAGE_CLOCK){
-                clockhand = frame_table[0];
-            }
+            clockhand = 0;
         }
         if(clock_type==PHYSICAL_FRAME_CLOCK){
             int page_index;
