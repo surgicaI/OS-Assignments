@@ -3,4 +3,5 @@ samples
 *.sh
 *.out
 scheduler
+io-scheduler
 mmu
