@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <queue>
 #include <stack>
+#include <fstream>
+#include <sstream>
 using namespace std;
 
 /*-------------------------------------------------------
@@ -14,8 +16,9 @@ const bool LOGS_ENABLED = false;
 /*-------------------------------------------------------
 Method declarations
 ---------------------------------------------------------*/
-
-
+void initAlgorithm(string);
+void initSimulation(string);
+void printSummary();
 
 /*-------------------------------------------------------
 Class definitions
@@ -35,7 +38,9 @@ class FIFO: public Algorithm{
 private:
     queue<IOEvent> myqueue;
 public:
-    FIFO();
+    FIFO(){
+
+    }
     IOEvent getEvent(int trackloc){
         return IOEvent();
     }
@@ -48,7 +53,9 @@ class SSTF: public Algorithm{
 private:
     queue<IOEvent> myqueue;
 public:
-    SSTF();
+    SSTF(){
+
+    }
     IOEvent getEvent(int trackloc){
         return IOEvent();
     }
@@ -61,7 +68,9 @@ class SCAN: public Algorithm{
 private:
     queue<IOEvent> myqueue;
 public:
-    SCAN();
+    SCAN(){
+
+    }
     IOEvent getEvent(int trackloc){
         return IOEvent();
     }
@@ -74,7 +83,9 @@ class CSCAN: public Algorithm{
 private:
     queue<IOEvent> myqueue;
 public:
-    CSCAN();
+    CSCAN(){
+
+    }
     IOEvent getEvent(int trackloc){
         return IOEvent();
     }
@@ -87,7 +98,9 @@ class FSCAN: public Algorithm{
 private:
     queue<IOEvent> myqueue;
 public:
-    FSCAN();
+    FSCAN(){
+
+    }
     IOEvent getEvent(int trackloc){
         return IOEvent();
     }
@@ -100,7 +113,7 @@ public:
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
-
+Algorithm *my_algorithm;
 
 
 /*-------------------------------------------------------
@@ -140,6 +153,9 @@ int main(int argc, char* argv[]){
         cout << "input file:" << input_file << endl;
     }
 
+    initAlgorithm(algo);
+    initSimulation(input_file);
+
     return 0;
 }
 
@@ -148,5 +164,54 @@ int main(int argc, char* argv[]){
 /*-------------------------------------------------------
 Method definitions
 ---------------------------------------------------------*/
+void initAlgorithm(string algo){
+    if(algo=="i"){
+        my_algorithm = new FIFO();
+    }else if(algo=="j"){
+        my_algorithm = new SSTF();
+    }else if(algo=="s"){
+        my_algorithm = new SCAN();
+    }else if(algo=="c"){
+        my_algorithm = new CSCAN();
+    }else if(algo=="f"){
+        my_algorithm = new FSCAN();
+    }else{
+        my_algorithm = new FIFO();
+    }
+}
+
+void initSimulation(string input_file){
+    ifstream file(input_file);
+    string str;
+    int time_step = 0;
+    int track = 0;
+    while (getline(file, str))
+    {
+        //ignoring the lines with # in input file
+        size_t found = str.find_first_of("#");
+        if (found!=string::npos)
+            continue;
+        if(LOGS_ENABLED)
+            cout<<str<<endl;
+
+        stringstream stream(str);
+        stream >> time_step;
+        stream >> track;
 
 
+    }
+}
+
+void printSummary(){
+    int total_time = 0;
+    int tot_movement = 0;
+    double avg_turnaround = 0;
+    double avg_waittime = 0;
+    int max_waittime = 0;
+    printf("SUM: %d %d %.2lf %.2lf %d\n", 
+        total_time, 
+        tot_movement, 
+        avg_turnaround, 
+        avg_waittime,  
+        max_waittime); 
+}
