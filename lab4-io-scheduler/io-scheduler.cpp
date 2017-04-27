@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <list>
 #include <algorithm>
+#include <vector>
 using namespace std;
 
 /*-------------------------------------------------------
@@ -63,7 +64,6 @@ public:
         return abs(lhs->tracknum-head_position) < abs(rhs->tracknum-head_position);
     }
     IOEvent* getEvent(){
-        list<IOEvent*>::const_iterator *closest = NULL;
         list<IOEvent*>::iterator it = min_element(mylist.begin(), mylist.end(), eventComp);
         IOEvent *event = *it;
         mylist.erase(it);
@@ -79,19 +79,58 @@ public:
 
 class SCAN: public Algorithm{
 private:
-    queue<IOEvent> myqueue;
+    vector<IOEvent*> mylist;
+    bool up;
 public:
     SCAN(){
-
+        up = true;
     }
     IOEvent* getEvent(){
-        return NULL;
+        IOEvent *event = NULL;
+        int position = 0;
+        for(int i=0;i<mylist.size();i++){
+            if(up){
+                if(mylist[i]->tracknum>=head_position){
+                    if(event==NULL){
+                        event = mylist[i];
+                        position = i;
+                    }else{
+                        int curr = mylist[i]->tracknum - head_position;
+                        int prev = event->tracknum - head_position;
+                        if(curr<prev){
+                            event = mylist[i];
+                            position = i;
+                        }
+                    }
+                }
+            }else{
+                if(mylist[i]->tracknum<=head_position){
+                    if(event==NULL){
+                        event = mylist[i];
+                        position = i;
+                    }else{
+                        int curr = head_position - mylist[i]->tracknum;
+                        int prev = head_position - event->tracknum;
+                        if(curr<prev){
+                            event = mylist[i];
+                            position = i;
+                        }
+                    }
+                }
+            }
+        }
+        if(event==NULL){
+            up = !up;
+            return this->getEvent();
+        }
+        mylist.erase(mylist.begin()+position);
+        return event;
     }
     void setEvent(IOEvent* e){
-
+        mylist.push_back(e);
     }
     bool empty(){
-        return myqueue.empty();
+        return mylist.empty();
     }
 };
 
