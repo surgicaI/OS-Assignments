@@ -13,6 +13,7 @@ Variable declarations
 const bool LOGS_ENABLED = false;
 bool verbose_output = false;
 int head_position = 0;
+int num_operations = 0;
 
 /*-------------------------------------------------------
 Class definitions
@@ -253,6 +254,7 @@ void parseInput(string input_file){
         eventid++;
 
         io_events.push(new IOEvent(eventid, time_step, track));
+        num_operations++;
     }
 }
 
@@ -282,10 +284,16 @@ void runSimulation(){
             break;
         }
     }
+    statistics.avg_turnaround /= num_operations;
+    statistics.avg_waittime /= num_operations;
 }
 
 void issueDiscRequest(IOEvent *io_event){
     int track_requested = io_event->tracknum;
+    int movement = abs(head_position - io_event->tracknum);
+    int wait_time = statistics.curr_time - io_event->time_step;
+    statistics.avg_waittime += wait_time;
+    statistics.max_waittime = max(statistics.max_waittime, wait_time);
 
     if(verbose_output){
         cout << left << setfill(' ') << setw(8) << to_string(statistics.curr_time)+":";
@@ -294,8 +302,9 @@ void issueDiscRequest(IOEvent *io_event){
     }
 
     event_in_process = io_event;
-    event_in_process->finish_time = statistics.curr_time + 
-                    abs(head_position - event_in_process->tracknum);
+    event_in_process->finish_time = statistics.curr_time + movement;
+
+    statistics.tot_movement += movement ;
     head_position = event_in_process->tracknum;
     if(LOGS_ENABLED){
         cout<<"finish time:" << event_in_process->finish_time<<endl;
@@ -309,6 +318,7 @@ void finishDiscRequest(){
         cout << event_in_process->eventid << " finish ";
         cout << event_in_process->finish_time - event_in_process->time_step <<endl;
     }
+    statistics.avg_turnaround += event_in_process->finish_time - event_in_process->time_step;
     delete event_in_process;
     event_in_process = NULL;
 }
