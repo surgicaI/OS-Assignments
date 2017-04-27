@@ -80,47 +80,32 @@ public:
 class SCAN: public Algorithm{
 private:
     vector<IOEvent*> mylist;
-    bool up;
+    int up;
 public:
     SCAN(){
-        up = true;
+        up = 1;
     }
     IOEvent* getEvent(){
         IOEvent *event = NULL;
         int position = 0;
         for(int i=0;i<mylist.size();i++){
-            if(up){
-                if(mylist[i]->tracknum>=head_position){
-                    if(event==NULL){
+            int condition = (mylist[i]->tracknum - head_position) * up;
+            if(condition >= 0){
+                if(event==NULL){
+                    event = mylist[i];
+                    position = i;
+                }else{
+                    int curr = (mylist[i]->tracknum - head_position) * up;
+                    int prev = (event->tracknum - head_position) * up;
+                    if(curr<prev){
                         event = mylist[i];
                         position = i;
-                    }else{
-                        int curr = mylist[i]->tracknum - head_position;
-                        int prev = event->tracknum - head_position;
-                        if(curr<prev){
-                            event = mylist[i];
-                            position = i;
-                        }
-                    }
-                }
-            }else{
-                if(mylist[i]->tracknum<=head_position){
-                    if(event==NULL){
-                        event = mylist[i];
-                        position = i;
-                    }else{
-                        int curr = head_position - mylist[i]->tracknum;
-                        int prev = head_position - event->tracknum;
-                        if(curr<prev){
-                            event = mylist[i];
-                            position = i;
-                        }
                     }
                 }
             }
         }
         if(event==NULL){
-            up = !up;
+            up *= -1;
             return this->getEvent();
         }
         mylist.erase(mylist.begin()+position);
