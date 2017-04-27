@@ -4,48 +4,51 @@
 #include <stack>
 #include <fstream>
 #include <sstream>
+#include <iomanip>
 using namespace std;
 
 /*-------------------------------------------------------
 Variable declarations
 ---------------------------------------------------------*/
 const bool LOGS_ENABLED = false;
-
-
-
-/*-------------------------------------------------------
-Method declarations
----------------------------------------------------------*/
-void initAlgorithm(string);
-void initSimulation(string);
-void printSummary();
+bool verbose_output = false;
+int head_position = 0;
 
 /*-------------------------------------------------------
 Class definitions
 ---------------------------------------------------------*/
 class IOEvent{
-    int eventid;
-    int tracknum;
+public:
+    int time_step, eventid, tracknum, finish_time;
+    IOEvent(int id, int t, int track){
+        eventid = id;
+        time_step = t;
+        tracknum = track;
+        finish_time = -1;
+    }
 };
 
 class Algorithm{
 public:
-    virtual IOEvent getEvent(int trackloc) = 0;
-    virtual void setEvent(IOEvent e) = 0;
+    virtual IOEvent* getEvent() = 0;
+    virtual void setEvent(IOEvent* e) = 0;
+    virtual bool empty() = 0;
 };
 
 class FIFO: public Algorithm{
 private:
-    queue<IOEvent> myqueue;
+    queue<IOEvent*> myqueue;
 public:
-    FIFO(){
-
+    IOEvent* getEvent(){
+        IOEvent *event = myqueue.front();
+        myqueue.pop();
+        return event;
     }
-    IOEvent getEvent(int trackloc){
-        return IOEvent();
+    void setEvent(IOEvent* e){
+        myqueue.push(e);
     }
-    void setEvent(IOEvent e){
-
+    bool empty(){
+        return myqueue.empty();
     }
 };
 
@@ -56,11 +59,14 @@ public:
     SSTF(){
 
     }
-    IOEvent getEvent(int trackloc){
-        return IOEvent();
+    IOEvent* getEvent(){
+        return NULL;
     }
-    void setEvent(IOEvent e){
+    void setEvent(IOEvent* e){
 
+    }
+    bool empty(){
+        return myqueue.empty();
     }
 };
 
@@ -71,11 +77,14 @@ public:
     SCAN(){
 
     }
-    IOEvent getEvent(int trackloc){
-        return IOEvent();
+    IOEvent* getEvent(){
+        return NULL;
     }
-    void setEvent(IOEvent e){
+    void setEvent(IOEvent* e){
 
+    }
+    bool empty(){
+        return myqueue.empty();
     }
 };
 
@@ -86,11 +95,14 @@ public:
     CSCAN(){
 
     }
-    IOEvent getEvent(int trackloc){
-        return IOEvent();
+    IOEvent* getEvent(){
+        return NULL;
     }
-    void setEvent(IOEvent e){
+    void setEvent(IOEvent* e){
 
+    }
+    bool empty(){
+        return myqueue.empty();
     }
 };
 
@@ -101,20 +113,56 @@ public:
     FSCAN(){
 
     }
-    IOEvent getEvent(int trackloc){
-        return IOEvent();
+    IOEvent* getEvent(){
+        return NULL;
     }
-    void setEvent(IOEvent e){
+    void setEvent(IOEvent* e){
 
+    }
+    bool empty(){
+        return myqueue.empty();
     }
 };
 
+class Statistics{
+public:
+    int curr_time, tot_movement, max_waittime;
+    double avg_turnaround, avg_waittime;
+
+    Statistics(){
+        curr_time = 0;
+        tot_movement = 0;
+        avg_turnaround = 0;
+        avg_waittime = 0;
+        max_waittime = 0;
+    }
+
+    void printSummary(){
+        printf("SUM: %d %d %.2lf %.2lf %d\n", 
+        curr_time, 
+        tot_movement, 
+        avg_turnaround, 
+        avg_waittime,  
+        max_waittime); 
+    }
+};
+
+/*-------------------------------------------------------
+Method declarations
+---------------------------------------------------------*/
+void initAlgorithm(string);
+void parseInput(string);
+void runSimulation();
+void issueDiscRequest(IOEvent*);
+void finishDiscRequest();
 
 /*-------------------------------------------------------
 Object declarations
 ---------------------------------------------------------*/
 Algorithm *my_algorithm;
-
+Statistics statistics;
+queue<IOEvent*> io_events;
+IOEvent *event_in_process = NULL;
 
 /*-------------------------------------------------------
 Main function
@@ -124,8 +172,11 @@ int main(int argc, char* argv[]){
     int c;
     string input_file = "";
     string algo = "";
-    while ((c = getopt(argc, argv, "s:")) != -1){
+    while ((c = getopt(argc, argv, "vs:")) != -1){
         switch (c){
+            case 'v':
+                verbose_output = true;
+                break;
             case 's':
                 algo = optarg;
                 break;
@@ -151,15 +202,16 @@ int main(int argc, char* argv[]){
     if(LOGS_ENABLED){
         cout << "algo      :" << algo << endl;
         cout << "input file:" << input_file << endl;
+        cout << "verbose   :" << verbose_output <<endl;
     }
 
     initAlgorithm(algo);
-    initSimulation(input_file);
+    parseInput(input_file);
+    runSimulation();
+    statistics.printSummary();
 
     return 0;
 }
-
-
 
 /*-------------------------------------------------------
 Method definitions
@@ -180,11 +232,12 @@ void initAlgorithm(string algo){
     }
 }
 
-void initSimulation(string input_file){
+void parseInput(string input_file){
     ifstream file(input_file);
     string str;
     int time_step = 0;
     int track = 0;
+    int eventid = -1;
     while (getline(file, str))
     {
         //ignoring the lines with # in input file
@@ -197,21 +250,66 @@ void initSimulation(string input_file){
         stringstream stream(str);
         stream >> time_step;
         stream >> track;
+        eventid++;
 
-
+        io_events.push(new IOEvent(eventid, time_step, track));
     }
 }
 
-void printSummary(){
-    int total_time = 0;
-    int tot_movement = 0;
-    double avg_turnaround = 0;
-    double avg_waittime = 0;
-    int max_waittime = 0;
-    printf("SUM: %d %d %.2lf %.2lf %d\n", 
-        total_time, 
-        tot_movement, 
-        avg_turnaround, 
-        avg_waittime,  
-        max_waittime); 
+void runSimulation(){
+    if(verbose_output)
+        cout<< "TRACE" <<endl;
+    while(true){
+        if(!io_events.empty() && statistics.curr_time == io_events.front()->time_step){
+            if(verbose_output){
+                cout << left << setfill(' ') << setw(8) << to_string(io_events.front()->time_step)+":";
+                cout << io_events.front()->eventid << " add ";
+                cout << io_events.front()->tracknum <<endl;
+            }
+            my_algorithm->setEvent(io_events.front());
+            io_events.pop();
+        }
+        if(event_in_process == NULL && !my_algorithm->empty()){
+            issueDiscRequest(my_algorithm->getEvent());
+        }
+
+        if(event_in_process && event_in_process->finish_time==statistics.curr_time)
+            finishDiscRequest();
+        else
+            statistics.curr_time++;
+            
+        if(io_events.empty() && my_algorithm->empty() && !event_in_process){
+            break;
+        }
+    }
 }
+
+void issueDiscRequest(IOEvent *io_event){
+    int track_requested = io_event->tracknum;
+
+    if(verbose_output){
+        cout << left << setfill(' ') << setw(8) << to_string(statistics.curr_time)+":";
+        cout << io_event->eventid << " issue ";
+        cout << io_event->tracknum << " " << head_position <<endl;
+    }
+
+    event_in_process = io_event;
+    event_in_process->finish_time = statistics.curr_time + 
+                    abs(head_position - event_in_process->tracknum);
+    head_position = event_in_process->tracknum;
+    if(LOGS_ENABLED){
+        cout<<"finish time:" << event_in_process->finish_time<<endl;
+        cout<<"head_position:"<<head_position<<"track:"<<event_in_process->tracknum <<endl;
+    }
+}
+
+void finishDiscRequest(){
+    if(verbose_output){
+        cout << left << setfill(' ') << setw(8) << to_string(event_in_process->finish_time)+":";
+        cout << event_in_process->eventid << " finish ";
+        cout << event_in_process->finish_time - event_in_process->time_step <<endl;
+    }
+    delete event_in_process;
+    event_in_process = NULL;
+}
+
