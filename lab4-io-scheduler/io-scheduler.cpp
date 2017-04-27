@@ -5,6 +5,8 @@
 #include <fstream>
 #include <sstream>
 #include <iomanip>
+#include <list>
+#include <algorithm>
 using namespace std;
 
 /*-------------------------------------------------------
@@ -55,19 +57,23 @@ public:
 
 class SSTF: public Algorithm{
 private:
-    queue<IOEvent> myqueue;
+    list<IOEvent*> mylist;
 public:
-    SSTF(){
-
+    static bool eventComp(const IOEvent* lhs, const IOEvent* rhs) {
+        return abs(lhs->tracknum-head_position) < abs(rhs->tracknum-head_position);
     }
     IOEvent* getEvent(){
-        return NULL;
+        list<IOEvent*>::const_iterator *closest = NULL;
+        list<IOEvent*>::iterator it = min_element(mylist.begin(), mylist.end(), eventComp);
+        IOEvent *event = *it;
+        mylist.erase(it);
+        return event;
     }
     void setEvent(IOEvent* e){
-
+        mylist.push_back(e);
     }
     bool empty(){
-        return myqueue.empty();
+        return mylist.empty();
     }
 };
 
