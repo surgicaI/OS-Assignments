@@ -376,7 +376,6 @@ void runSimulation(){
 }
 
 void issueDiscRequest(IOEvent *io_event){
-    int track_requested = io_event->tracknum;
     int movement = abs(head_position - io_event->tracknum);
     int wait_time = statistics.curr_time - io_event->time_step;
     statistics.avg_waittime += wait_time;
