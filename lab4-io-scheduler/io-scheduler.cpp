@@ -163,19 +163,52 @@ public:
 
 class FSCAN: public Algorithm{
 private:
-    queue<IOEvent> myqueue;
+    vector<IOEvent*> *my_active_list;
+    vector<IOEvent*> *my_inactive_list;
+    int up;
 public:
     FSCAN(){
-
+        my_active_list = new vector<IOEvent*>();
+        my_inactive_list = new vector<IOEvent*>();
+        up = 1;
     }
     IOEvent* getEvent(){
-        return NULL;
+        if(my_active_list->empty()){
+            vector<IOEvent*> *temp = my_active_list;
+            my_active_list = my_inactive_list;
+            my_inactive_list = temp;
+            up = 1;
+        }
+        IOEvent *event = NULL;
+        int position = 0;
+        for(int i=0;i< my_active_list->size();i++){
+            int condition = (my_active_list->at(i)->tracknum - head_position) * up;
+            if(condition >= 0){
+                if(event==NULL){
+                    event = my_active_list->at(i);
+                    position = i;
+                }else{
+                    int curr = ( my_active_list->at(i)->tracknum - head_position) * up;
+                    int prev = (event->tracknum - head_position) * up;
+                    if(curr<prev){
+                        event = my_active_list->at(i);
+                        position = i;
+                    }
+                }
+            }
+        }
+        if(event==NULL){
+            up *= -1;
+            return this->getEvent();
+        }
+        my_active_list->erase(my_active_list->begin()+position);
+        return event;
     }
     void setEvent(IOEvent* e){
-
+        my_inactive_list->push_back(e);
     }
     bool empty(){
-        return myqueue.empty();
+        return my_active_list->empty() && my_inactive_list->empty();
     }
 };
 
