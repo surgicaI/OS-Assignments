@@ -121,19 +121,43 @@ public:
 
 class CSCAN: public Algorithm{
 private:
-    queue<IOEvent> myqueue;
+    vector<IOEvent*> mylist;
+    int reset;
 public:
     CSCAN(){
-
+        reset = 1;
     }
     IOEvent* getEvent(){
-        return NULL;
+        IOEvent *event = NULL;
+        int position = 0;
+        for(int i=0;i<mylist.size();i++){
+            if(mylist[i]->tracknum - (head_position*reset) >= 0){
+                if(event==NULL){
+                    event = mylist[i];
+                    position = i;
+                }else{
+                    int curr = mylist[i]->tracknum - (head_position*reset);
+                    int prev = event->tracknum - (head_position*reset);
+                    if(curr<prev){
+                        event = mylist[i];
+                        position = i;
+                    }
+                }
+            }
+        }
+        if(event==NULL){
+            reset = 0;
+            return this->getEvent();
+        }
+        mylist.erase(mylist.begin()+position);
+        reset = 1;
+        return event;
     }
     void setEvent(IOEvent* e){
-
+        mylist.push_back(e);
     }
     bool empty(){
-        return myqueue.empty();
+        return mylist.empty();
     }
 };
 
